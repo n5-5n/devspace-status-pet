@@ -75,6 +75,33 @@ $script:DevSpaceTextCatalog = @{
         DesktopShortcut = 'デスクトップ: {0}'
         StartupEnabled = 'Windowsログイン時の自動起動: 有効'
         InstallerHint = 'タスクトレイの丸いアイコンと、デスクトップ右下のペットで状態を確認できます。'
+        InstalledTo = 'インストール先: {0}'
+        DevSpaceDetected = 'DevSpace: 検出済み'
+        DevSpaceNotDetected = 'DevSpaceを検出できませんでした。@waishnav/devspaceをインストールし、devspace serveを起動してください。'
+        OpenSettings = '設定を開く'
+        VersionFormat = 'DevSpace Status Pet v{0}'
+        SettingsTitle = 'DevSpace Status Pet 設定'
+        SettingsStatusRunning = 'DevSpaceは起動中です'
+        SettingsStatusStopped = 'DevSpaceは停止中です'
+        SettingsPort = 'ポート'
+        SettingsLogPath = 'ログファイル'
+        SettingsConfigPath = '設定ファイル'
+        SettingsLanguage = '表示言語'
+        SettingsTheme = 'ペットのテーマ'
+        SettingsStartWithWindows = 'Windowsログイン時に起動'
+        SettingsShowBubble = '吹き出しを常時表示'
+        SettingsSaveRestart = '保存して再起動'
+        SettingsClose = '閉じる'
+        SettingsOpenLog = '開く'
+        SettingsInstallDevSpace = 'DevSpaceのページを開く'
+        SettingsSaved = '設定を保存し、監視とペットを再起動しました。'
+        SettingsLogMissing = 'ログファイルはまだ作成されていません。'
+        UninstallDone = 'DevSpace Status Petをアンインストールしました。'
+        UninstallSettingsKept = 'ユーザー設定は保持しました。'
+        UninstallSettingsRemoved = 'ユーザー設定も削除しました。'
+        UninstallPrompt = 'ユーザー設定とペット位置も削除しますか？'
+        Yes = 'はい'
+        No = 'いいえ'
     }
     English = @{
         Unknown = 'Unknown'
@@ -150,6 +177,33 @@ $script:DevSpaceTextCatalog = @{
         DesktopShortcut = 'Desktop shortcut: {0}'
         StartupEnabled = 'Start with Windows: enabled'
         InstallerHint = 'Use the tray icon and the desktop pet to view DevSpace activity.'
+        InstalledTo = 'Installed to: {0}'
+        DevSpaceDetected = 'DevSpace: detected'
+        DevSpaceNotDetected = 'DevSpace was not detected. Install @waishnav/devspace and start devspace serve.'
+        OpenSettings = 'Open settings'
+        VersionFormat = 'DevSpace Status Pet v{0}'
+        SettingsTitle = 'DevSpace Status Pet Settings'
+        SettingsStatusRunning = 'DevSpace is running'
+        SettingsStatusStopped = 'DevSpace is stopped'
+        SettingsPort = 'Port'
+        SettingsLogPath = 'Log file'
+        SettingsConfigPath = 'Config file'
+        SettingsLanguage = 'Display language'
+        SettingsTheme = 'Pet theme'
+        SettingsStartWithWindows = 'Start with Windows'
+        SettingsShowBubble = 'Always show bubbles'
+        SettingsSaveRestart = 'Save and restart'
+        SettingsClose = 'Close'
+        SettingsOpenLog = 'Open'
+        SettingsInstallDevSpace = 'Open DevSpace page'
+        SettingsSaved = 'Settings were saved and the monitor and pet were restarted.'
+        SettingsLogMissing = 'The log file has not been created yet.'
+        UninstallDone = 'DevSpace Status Pet has been uninstalled.'
+        UninstallSettingsKept = 'User settings were kept.'
+        UninstallSettingsRemoved = 'User settings were removed.'
+        UninstallPrompt = 'Also remove user settings and the saved pet position?'
+        Yes = 'Yes'
+        No = 'No'
     }
 }
 
@@ -189,6 +243,24 @@ function Get-DevSpaceText {
         return [string]::Format([System.Globalization.CultureInfo]::CurrentCulture, $text, $Arguments)
     }
     return $text
+}
+
+function Get-DevSpaceStatusPetVersion {
+    param([string]$BaseDirectory = $PSScriptRoot)
+
+    try {
+        $versionPath = Join-Path $BaseDirectory 'VERSION'
+        if (Test-Path -LiteralPath $versionPath) {
+            $version = [System.IO.File]::ReadAllText($versionPath, [System.Text.Encoding]::UTF8).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($version)) {
+                return $version
+            }
+        }
+    }
+    catch {
+        # Fall through to an unknown development version.
+    }
+    return '0.0.0-dev'
 }
 
 function Read-DevSpaceSharedSettings {

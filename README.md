@@ -2,77 +2,70 @@
 
 **[日本語](README.md) | [English](README.en.md)**
 
-Windows上で動くDevSpaceの状態を、タスクトレイとデスクトップペットで確認する軽量モニターです。
+Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
-- DevSpaceが実際にローカル処理を実行しているかを表示
-- プロジェクト名、処理内容、経過時間を安全な要約で表示
-- 複数チャット／ワークスペースの並列作業を複数の吹き出しで表示
-- 作業の区切り、失敗、停滞、DevSpace停止を通知
-- クラシック／ネオンのテーマ切替
-- 日本語／英語／OS言語への自動追従
-- タスクバーには出さず、画面右下へ常駐
+- 実際のローカル処理を素早く検出
+- プロジェクト名、処理内容、経過時間を表示
+- 複数チャット／ワークスペースの並列作業を複数吹き出しで表示
+- 作業区切り、失敗、停滞、DevSpace停止を通知
+- クラシック／ネオンの2テーマ
+- 日本語／英語／OS言語自動選択
+- タスクバーには表示せず、画面上へ常駐
 
-## 対応環境
+## プレビュー
 
-### 対応
+| クラシック | ネオン |
+|---|---|
+| ![Classic theme](docs/classic-preview.svg) | ![Neon theme](docs/neon-preview.svg) |
+
+## 必要環境
 
 - Windows 10またはWindows 11
 - Windows PowerShell 5.1
-- `@waishnav/devspace`
-- DevSpaceとこのモニターを同じWindows PCで実行する構成
-- DevSpaceプロジェクトを任意のドライブや任意のフォルダーへ配置する構成
-- スペース、日本語などを含むパス
-- ローカルドライブおよびUNCパス
+- [`@waishnav/devspace`](https://www.npmjs.com/package/@waishnav/devspace)
+- DevSpaceと本ツールを同じPCで実行
 
-DevSpaceの次の設定を自動で読み取ります。
+macOSとLinuxには対応していません。
 
-```text
-%USERPROFILE%\.devspace\config.json
-```
+## 最短インストール
 
-- `port`
-- `allowedRoots`
+1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-vX.Y.Z.zip`をダウンロード
+2. ZIPを展開
+3. `Install.cmd`を実行
 
-ログは既定で、同じ`.devspace`フォルダー内の`serve.log`を使用します。
-
-### 制限
-
-- macOSとLinuxには未対応です。
-- DevSpaceを別PCで実行し、このペットだけを手元のPCで動かす構成には未対応です。
-- DevSpaceのログ保存場所を独自変更している場合は、`-LogPath`を指定してください。
-- DevSpaceのログ形式が将来大きく変わった場合は、追従修正が必要になる可能性があります。
-- 「作業区切り完了」は、一定時間DevSpace操作がないことを利用した推定です。
-
-## インストールと起動
-
-1. リポジトリを任意のフォルダーへ配置します。
-2. `Install-DevSpaceStatus.cmd`を1回実行します。
-3. 以後はWindowsログイン時に自動起動します。
-
-インストーラーは次を作成します。
-
-- デスクトップ：`DevSpace Status Pet.lnk`
-- スタートアップ：`DevSpace Status Pet.lnk`
-
-手動起動は`Start-DevSpaceStatus.cmd`、状態の1回確認は`Check-DevSpaceStatus.cmd`です。
-
-多重起動防止があるため、同じ監視やペットが複数起動することはありません。
-
-## 言語
-
-ペットを右クリックし、**言語 / Language**から選択します。
-
-- **自動（OS言語）**：WindowsのUI言語が日本語なら日本語、それ以外は英語
-- **日本語**
-- **English**
-
-設定は次へ保存され、ペット、タスクトレイ、通知、詳細画面へまとめて反映されます。
+インストーラーは次へコピーします。
 
 ```text
-%USERPROFILE%\.devspace\devspace-pet-settings.json
+%LOCALAPPDATA%\DevSpaceStatusPet
 ```
 
-## タスクトレイの状態
+作成されるもの：
+
+- デスクトップ：`DevSpace Status Pet`
+- デスクトップ：`DevSpace Status Pet Settings`
+- Windowsログイン時の自動起動
+
+DevSpaceを検出できない場合もインストール自体は完了し、必要な起動手順を案内します。
+
+## 設定画面
+
+ペットまたはタスクトレイを右クリックし、**設定を開く**を選択します。デスクトップの`DevSpace Status Pet Settings`からも開けます。
+
+確認・変更できる項目：
+
+- DevSpaceの起動状態
+- 検出したポート
+- `config.json`の位置
+- `serve.log`の位置
+- 表示言語：自動／日本語／English
+- テーマ：クラシック／ネオン
+- 吹き出しの常時表示
+- Windowsログイン時の自動起動
+- バージョン
+
+保存すると、監視とペットを安全に再起動します。
+
+## 状態表示
 
 | 色 | 状態 |
 |---|---|
@@ -80,38 +73,18 @@ DevSpaceの次の設定を自動で読み取ります。
 | 青 | DevSpace起動済み・待機中 |
 | 黄 | 直前の処理が終了し、次の操作待ち |
 | オレンジ | 直前の処理が失敗 |
-| 紫 | 長時間、CPUとログの更新がなく停滞の疑い |
+| 紫 | CPUとログ更新が長時間なく、停滞の疑い |
 | 赤 | DevSpace停止中 |
 
-黄色は作業全体の完了を意味しません。
+黄色は作業全体の完了を意味しません。完了通知は、最後のDevSpace操作から既定で45秒間、新しい処理がない場合に1回だけ表示します。個々の`read`、`edit`、`bash`の完了ごとには通知しません。
 
-Windowsの完了通知は、最後のDevSpace操作から既定で45秒間、新しい処理がない場合だけ「作業区切り完了」として1回表示します。個々の`read`、`edit`、`bash`の完了ごとには通知しません。
+## 並列作業
 
-## デスクトップペット
-
-ペットは状態に合わせて動きます。
-
-- 待機中：ゆっくり上下する
-- 作業中：手足を動かす
-- 次の処理待ち：ジャンプする
-- 失敗：目が×印になる
-- 停滞：`Z`を表示する
-- DevSpace停止：電源が切れたような表示になる
-
-### テーマ
-
-ペットを右クリックして選択します。
-
-- **クラシック（状態色）**：青、緑、黄、赤、紫を状態に合わせて使用
-- **ネオン（紫・黄）**：黒い筐体、紫のネオン、黄色の目とランプ
-
-### 並列作業
-
-複数のDevSpaceワークスペースや処理が並行している場合、プロジェクトごとの吹き出しを最大4段表示します。
+複数のワークスペースやプロセスが動いている場合、最大4段の吹き出しを表示します。
 
 ```text
 VideoShrink
-Run-BatchGuiSmoke
+dotnet test
 作業中  03:21
 
 personal-hub
@@ -119,23 +92,42 @@ personal-hub
 次の処理待ち  00:08
 ```
 
-5件以上ある場合は、最後の吹き出しへ残り件数をまとめます。
+5件以上は残り件数へまとめます。
 
-### 操作
+## ペット操作
 
 - 左ドラッグ：移動
-- 左クリック：吹き出しの常時表示を切り替え
-- 右クリック：テーマ、言語、吹き出し表示、位置リセット、終了
+- 左クリック：吹き出しの常時表示を切替
+- 右クリック：設定、言語、テーマ、位置リセット、終了
 
-## 状態連携と安全性
-
-監視は、ペット用の状態を次へ書き出します。
+設定は次へ保存されます。
 
 ```text
-%USERPROFILE%\.devspace\devspace-status.json
+%USERPROFILE%\.devspace\devspace-pet-settings.json
+%USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-ペットへ渡すのは次の安全な要約だけです。
+## アンインストール
+
+インストール先または展開したZIP内の`Uninstall.cmd`を実行します。
+
+アンインストール時に、テーマ・言語・ペット位置も削除するか選択できます。DevSpace本体やDevSpaceのプロジェクトには触れません。
+
+## 自動検出と移植性
+
+本ツールは各PCの次の情報を自動検出します。
+
+- `%USERPROFILE%\.devspace\config.json`
+- DevSpaceのポート
+- `allowedRoots`
+- 実際に開かれたワークスペース
+- `serve.log`
+
+別ドライブ、スペース入りパス、日本語パス、UNCパスをセルフテストしています。ログ位置を独自変更していて自動検出できない場合は、`DevSpaceStatus.ps1 -LogPath ...`で指定できます。
+
+## 安全性
+
+ペットへ渡す状態JSONには、次の安全な要約だけを書き出します。
 
 - 状態
 - プロジェクト名
@@ -143,50 +135,33 @@ personal-hub
 - 経過時間
 - 成否
 
-コマンド全文、認証情報、環境変数は状態JSONへ書き出しません。
+コマンド全文、環境変数、認証情報は書き出しません。
 
-## 主な引数
-
-DevSpaceのポートとルートは`config.json`から自動取得します。手動指定も可能です。
-
-```powershell
-.\DevSpaceStatus.ps1 `
-  -RefreshSeconds 3 `
-  -CompletionQuietSeconds 45 `
-  -StallMinutes 30 `
-  -Port 7676 `
-  -LogPath "$env:USERPROFILE\.devspace\serve.log"
-```
-
-```powershell
-.\DevSpacePet.ps1 -StateRefreshMilliseconds 750
-```
-
-## 検証
+## ソースから実行
 
 ```powershell
 .\tests\ParseScripts.ps1
+.\Start-DevSpaceStatus.cmd
 ```
 
-次を検証します。
+リリースZIPを生成する場合：
 
-- Windows PowerShell 5.1の構文
-- 別ドライブのワークスペース
-- スペース入りプロジェクト名
-- UNCパス
-- 日本語と英語のローカライズ
+```powershell
+.\scripts\Build-Release.ps1
+```
 
-GitHub Actionsでも同じ検証を実行します。
+生成物：
 
-## ファイル
+```text
+artifacts\DevSpace-Status-Pet-vX.Y.Z.zip
+artifacts\DevSpace-Status-Pet-vX.Y.Z.zip.sha256
+```
 
-- `DevSpaceLocalization.ps1`：日本語・英語辞書と共通設定読込
-- `DevSpaceStatus.ps1`：状態判定、並列活動の集約、タスクトレイ、通知
-- `DevSpacePet.ps1`：テーマ・言語切替、複数吹き出し、アニメーション
-- `Start-DevSpaceStatus.cmd`：監視とペットを起動
-- `Check-DevSpaceStatus.cmd`：状態を1回確認
-- `Install-DevSpaceStatus.ps1`：ショートカットと自動起動を設定
-- `Install-DevSpaceStatus.cmd`：インストーラー起動
+`vX.Y.Z`タグをpushすると、GitHub Actionsが検証、ZIP生成、GitHub Release公開を自動実行します。
+
+## 変更履歴
+
+[CHANGELOG.md](CHANGELOG.md)
 
 ## License
 

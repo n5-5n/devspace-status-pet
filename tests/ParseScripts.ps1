@@ -7,7 +7,12 @@ $files = @(
     'DevSpaceLocalization.ps1',
     'DevSpaceStatus.ps1',
     'DevSpacePet.ps1',
-    'Install-DevSpaceStatus.ps1'
+    'Install-DevSpaceStatus.ps1',
+    'Open-DevSpaceStatusSettings.ps1',
+    'Stop-DevSpaceStatusPet.ps1',
+    'Uninstall-DevSpaceStatus.ps1',
+    'scripts\Build-Release.ps1',
+    'tests\InstallSmoke.ps1'
 )
 
 $failed = $false

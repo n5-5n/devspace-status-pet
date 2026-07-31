@@ -9,6 +9,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Parse PowerShell scripts
+      - name: Parse PowerShell scripts and run self-tests
         shell: powershell
         run: .\tests\ParseScripts.ps1
+      - name: Build release package
+        shell: powershell
+        run: .\scripts\Build-Release.ps1 -SkipTests | Format-List
+      - name: Smoke-test isolated install and uninstall
+        shell: powershell
+        run: .\tests\InstallSmoke.ps1

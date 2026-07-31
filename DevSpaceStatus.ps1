@@ -27,6 +27,7 @@ if (-not (Test-Path -LiteralPath $localizationPath)) {
 }
 . $localizationPath
 
+$script:appVersion = Get-DevSpaceStatusPetVersion -BaseDirectory $PSScriptRoot
 $script:languagePreference = 'Auto'
 $script:language = Resolve-DevSpaceLanguage -Preference $script:languagePreference
 $script:allowedRoots = @()
@@ -1277,7 +1278,16 @@ $folderMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $folderMenuItem.Text = L 'OpenFolder'
 [void]$menu.Items.Add($folderMenuItem)
 
+$settingsMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$settingsMenuItem.Text = L 'OpenSettings'
+[void]$menu.Items.Add($settingsMenuItem)
+
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
+$versionMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$versionMenuItem.Text = L 'VersionFormat' @($script:appVersion)
+$versionMenuItem.Enabled = $false
+[void]$menu.Items.Add($versionMenuItem)
+
 $exitMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $exitMenuItem.Text = L 'Exit'
 [void]$menu.Items.Add($exitMenuItem)
@@ -1290,6 +1300,8 @@ function Update-TrayStaticText {
     $detailsMenuItem.Text = L 'Details'
     $logMenuItem.Text = L 'OpenLog'
     $folderMenuItem.Text = L 'OpenFolder'
+    $settingsMenuItem.Text = L 'OpenSettings'
+    $versionMenuItem.Text = L 'VersionFormat' @($script:appVersion)
     $exitMenuItem.Text = L 'Exit'
 }
 
@@ -1375,6 +1387,12 @@ $folderMenuItem.Add_Click({
     $folder = Split-Path -Parent $LogPath
     if (Test-Path -LiteralPath $folder) {
         Start-Process explorer.exe -ArgumentList @($folder)
+    }
+})
+$settingsMenuItem.Add_Click({
+    $settingsScript = Join-Path $PSScriptRoot 'Open-DevSpaceStatusSettings.ps1'
+    if (Test-Path -LiteralPath $settingsScript) {
+        Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $settingsScript))
     }
 })
 $notifyIcon.Add_MouseClick({

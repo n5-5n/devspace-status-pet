@@ -17,6 +17,7 @@ if (-not (Test-Path -LiteralPath $localizationPath)) {
 }
 . $localizationPath
 
+$script:appVersion = Get-DevSpaceStatusPetVersion -BaseDirectory $PSScriptRoot
 $script:languagePreference = 'Auto'
 $script:language = Resolve-DevSpaceLanguage -Preference $script:languagePreference
 
@@ -426,7 +427,14 @@ $englishLanguageItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $resetPositionItem = New-Object System.Windows.Forms.ToolStripMenuItem
 [void]$contextMenu.Items.Add($resetPositionItem)
 
+$settingsItem = New-Object System.Windows.Forms.ToolStripMenuItem
+[void]$contextMenu.Items.Add($settingsItem)
+
 [void]$contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
+$versionItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$versionItem.Enabled = $false
+[void]$contextMenu.Items.Add($versionItem)
+
 $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem
 [void]$contextMenu.Items.Add($exitItem)
 $form.ContextMenuStrip = $contextMenu
@@ -452,6 +460,8 @@ function Update-PetMenuText {
     $japaneseLanguageItem.Text = P 'LanguageJapanese'
     $englishLanguageItem.Text = P 'LanguageEnglish'
     $resetPositionItem.Text = P 'ResetPosition'
+    $settingsItem.Text = P 'OpenSettings'
+    $versionItem.Text = P 'VersionFormat' @($script:appVersion)
     $exitItem.Text = P 'ExitPet'
 }
 
@@ -490,6 +500,12 @@ $englishLanguageItem.Add_Click({ Set-PetLanguagePreference -Preference 'English'
 $resetPositionItem.Add_Click({
     Move-PetToBottomRight
     Save-PetPosition
+})
+$settingsItem.Add_Click({
+    $settingsScript = Join-Path $PSScriptRoot 'Open-DevSpaceStatusSettings.ps1'
+    if (Test-Path -LiteralPath $settingsScript) {
+        Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $settingsScript))
+    }
 })
 $exitItem.Add_Click({ $form.Close() })
 Update-ThemeMenuChecks

@@ -1,0 +1,48 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate PowerShell and self-tests
+        shell: powershell
+        run: .\tests\ParseScripts.ps1
+
+      - name: Verify tag matches VERSION
+        shell: powershell
+        run: |
+          $version = [System.IO.File]::ReadAllText("$PWD\VERSION").Trim()
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match VERSION $version"
+          }
+
+      - name: Build release package
+        shell: powershell
+        run: .\scripts\Build-Release.ps1 -SkipTests | Format-List
+
+      - name: Smoke-test isolated install and uninstall
+        shell: powershell
+        run: .\tests\InstallSmoke.ps1
+
+      - name: Create GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = [System.IO.File]::ReadAllText("$PWD\VERSION").Trim()
+          $zip = "artifacts\DevSpace-Status-Pet-v$version.zip"
+          $hash = "$zip.sha256"
+          gh release create "${{ github.ref_name }}" $zip $hash `
+            --verify-tag `
+            --title "DevSpace Status Pet v$version" `
+            --notes-file RELEASE_NOTES.md

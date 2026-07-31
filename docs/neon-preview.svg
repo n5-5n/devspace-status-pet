@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
+  <defs>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="800" height="420" rx="24" fill="#050509"/>
+  <g filter="url(#glow)">
+    <rect x="36" y="38" width="380" height="92" rx="18" fill="#141720" stroke="#de00ee" stroke-width="4"/>
+    <rect x="36" y="148" width="380" height="92" rx="18" fill="#141720" stroke="#de00ee" stroke-width="4"/>
+  </g>
+  <text x="62" y="70" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#f6f7fb">VideoShrink</text>
+  <text x="62" y="98" font-family="Segoe UI, sans-serif" font-size="18" fill="#b0b6c4">ffmpeg</text>
+  <circle cx="64" cy="116" r="6" fill="#4be182"/>
+  <text x="80" y="122" font-family="Segoe UI, sans-serif" font-size="16" fill="#b0b6c4">Working 03:21</text>
+  <text x="62" y="180" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#f6f7fb">devspace-status</text>
+  <text x="62" y="208" font-family="Segoe UI, sans-serif" font-size="18" fill="#b0b6c4">PowerShell validation</text>
+  <circle cx="64" cy="226" r="6" fill="#ffc635"/>
+  <text x="80" y="232" font-family="Segoe UI, sans-serif" font-size="16" fill="#b0b6c4">Waiting 00:08</text>
+  <g filter="url(#glow)" stroke="#de00ee">
+    <ellipse cx="603" cy="360" rx="120" ry="18" fill="#de00ee" opacity=".35" stroke-width="3"/>
+    <rect x="535" y="218" width="136" height="122" rx="28" fill="#1d212b" stroke-width="6"/>
+    <rect x="510" y="110" width="186" height="132" rx="42" fill="#1d212b" stroke-width="7"/>
+  </g>
+  <rect x="532" y="138" width="142" height="70" rx="24" fill="#0b0e15"/>
+  <ellipse cx="569" cy="173" rx="14" ry="18" fill="#ffc635" filter="url(#glow)"/>
+  <ellipse cx="637" cy="173" rx="14" ry="18" fill="#ffc635" filter="url(#glow)"/>
+  <line x1="603" y1="111" x2="620" y2="74" stroke="#ffc635" stroke-width="9" stroke-linecap="round" filter="url(#glow)"/>
+  <circle cx="624" cy="65" r="14" fill="#ffc635" filter="url(#glow)"/>
+  <circle cx="603" cy="276" r="20" fill="#ffc635" filter="url(#glow)"/>
+  <line x1="535" y1="252" x2="492" y2="280" stroke="#ffc635" stroke-width="10" stroke-linecap="round"/>
+  <line x1="671" y1="252" x2="714" y2="280" stroke="#ffc635" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="485" cy="286" r="18" fill="#1d212b" stroke="#de00ee" stroke-width="5" filter="url(#glow)"/>
+  <circle cx="721" cy="286" r="18" fill="#1d212b" stroke="#de00ee" stroke-width="5" filter="url(#glow)"/>
+  <rect x="541" y="334" width="52" height="20" rx="10" fill="#1d212b" stroke="#de00ee" stroke-width="5" filter="url(#glow)"/>
+  <rect x="613" y="334" width="52" height="20" rx="10" fill="#1d212b" stroke="#de00ee" stroke-width="5" filter="url(#glow)"/>
+  <text x="482" y="100" font-family="Segoe UI Symbol, sans-serif" font-size="34" fill="#ffc635" filter="url(#glow)">★</text>
+  <text x="718" y="132" font-family="Segoe UI Symbol, sans-serif" font-size="34" fill="#ffc635" filter="url(#glow)">✦</text>
+  <text x="36" y="390" font-family="Segoe UI, sans-serif" font-size="18" fill="#b0b6c4">Neon theme · purple and yellow</text>
+</svg>

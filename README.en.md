@@ -2,118 +2,89 @@
 
 **[日本語](README.md) | [English](README.en.md)**
 
-A lightweight Windows monitor that shows DevSpace activity through a system-tray indicator and an animated desktop pet.
+A Windows tray monitor and animated desktop pet for local DevSpace activity.
 
-- Shows whether DevSpace is actually running a local process
-- Displays a safe summary of the project, operation, and elapsed time
-- Shows parallel chats and workspaces as multiple speech bubbles
-- Notifies you about work-segment completion, failures, stalls, and server shutdowns
-- Includes Classic and Neon visual themes
-- Supports Japanese, English, and automatic OS-language selection
-- Stays off the taskbar and floats near the bottom-right of the desktop
+- Detects real local processing quickly
+- Shows project, operation, and elapsed time
+- Displays multiple bubbles for parallel chats, workspaces, and processes
+- Notifies on work-segment completion, failure, stalls, and DevSpace shutdown
+- Classic and Neon themes
+- Japanese, English, and automatic OS-language selection
+- Stays on the desktop without adding a taskbar button
 
-## Compatibility
+## Preview
 
-### Supported
+| Classic | Neon |
+|---|---|
+| ![Classic theme](docs/classic-preview.svg) | ![Neon theme](docs/neon-preview.svg) |
+
+## Requirements
 
 - Windows 10 or Windows 11
 - Windows PowerShell 5.1
-- `@waishnav/devspace`
-- DevSpace and this monitor running on the same Windows PC
-- Projects stored on any local drive or in any folder
-- Paths containing spaces or non-ASCII characters
-- Local paths and UNC paths
+- [`@waishnav/devspace`](https://www.npmjs.com/package/@waishnav/devspace)
+- DevSpace and this monitor running on the same computer
 
-The monitor automatically reads the following DevSpace configuration file:
+macOS and Linux are not supported.
 
-```text
-%USERPROFILE%\.devspace\config.json
-```
+## Quick install
 
-It uses:
+1. Download `DevSpace-Status-Pet-vX.Y.Z.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest).
+2. Extract the ZIP.
+3. Run `Install.cmd`.
 
-- `port`
-- `allowedRoots`
-
-By default, the monitor reads `serve.log` from the same `.devspace` directory.
-
-### Limitations
-
-- macOS and Linux are not currently supported.
-- Running DevSpace on another PC while showing only the pet locally is not supported.
-- If your DevSpace launcher writes logs somewhere else, pass `-LogPath` explicitly.
-- A major future change to the DevSpace JSON log format may require an update.
-- “Work segment finished” is a heuristic based on a quiet period with no new DevSpace activity.
-
-## Installation and startup
-
-1. Place the repository in any folder.
-2. Run `Install-DevSpaceStatus.cmd` once.
-3. The monitor and pet will start automatically when you sign in to Windows.
-
-The installer creates:
-
-- Desktop shortcut: `DevSpace Status Pet.lnk`
-- Startup shortcut: `DevSpace Status Pet.lnk`
-
-Use `Start-DevSpaceStatus.cmd` for manual startup and `Check-DevSpaceStatus.cmd` for a one-time console status check.
-
-A mutex prevents duplicate tray monitors or pets from running.
-
-## Language
-
-Right-click the pet and open **Language / 言語**.
-
-- **Auto (OS language)**: Japanese on a Japanese Windows UI; English otherwise
-- **日本語**
-- **English**
-
-The selection is stored here and shared by the pet, tray menu, notifications, and details dialog:
+The installer copies the application to:
 
 ```text
-%USERPROFILE%\.devspace\devspace-pet-settings.json
+%LOCALAPPDATA%\DevSpaceStatusPet
 ```
+
+It creates:
+
+- `DevSpace Status Pet` on the desktop
+- `DevSpace Status Pet Settings` on the desktop
+- A Windows startup shortcut
+
+Installation still completes when DevSpace is not detected, and the installer explains what must be installed or started.
+
+## Settings window
+
+Right-click the pet or tray icon and choose **Open settings**. You can also use the `DevSpace Status Pet Settings` desktop shortcut.
+
+The window shows and configures:
+
+- Whether DevSpace is running
+- Detected port
+- `config.json` location
+- `serve.log` location
+- Display language: Auto, Japanese, or English
+- Pet theme: Classic or Neon
+- Always-visible bubbles
+- Start with Windows
+- Installed version
+
+Saving safely restarts the monitor and pet.
 
 ## Tray states
 
-| Color | Meaning |
+| Color | State |
 |---|---|
-| Green | A local DevSpace process is running |
-| Blue | DevSpace is running but idle |
-| Yellow | The previous process finished and the session is waiting for the next step |
+| Green | Running a local process |
+| Blue | DevSpace is running and idle |
+| Yellow | The previous process ended and is waiting for the next step |
 | Orange | The previous process failed |
-| Purple | CPU and log activity have been quiet long enough to suggest a stall |
-| Red | The DevSpace server is stopped |
+| Purple | CPU and log activity appear stalled |
+| Red | DevSpace is stopped |
 
-Yellow does **not** mean the entire assistant task is finished.
+Yellow does not mean the entire assistant task is finished. By default, a completion notification appears once only after 45 seconds without a new DevSpace operation. It does not notify after every `read`, `edit`, or `bash` call.
 
-By default, a Windows completion notification appears only after 45 seconds with no new DevSpace activity. Individual `read`, `edit`, and `bash` completions do not each produce a notification.
+## Parallel work
 
-## Desktop pet
-
-The pet changes its animation with the current state:
-
-- Idle: slowly floats
-- Working: moves its arms and legs
-- Waiting for the next step: jumps
-- Failed: shows X-shaped eyes
-- Possibly stalled: displays `Z`
-- DevSpace stopped: appears powered off
-
-### Themes
-
-Right-click the pet and choose:
-
-- **Classic (status colors)**: blue, green, yellow, red, and purple based on state
-- **Neon (purple and yellow)**: dark body, purple neon outline, yellow eyes and lights
-
-### Parallel work
-
-When multiple DevSpace workspaces or processes are active, the pet displays up to four project-specific speech bubbles.
+When several workspaces or process trees are active, the pet shows up to four bubbles.
 
 ```text
 VideoShrink
-Run-BatchGuiSmoke
+dotnet test
 Working  03:21
 
 personal-hub
@@ -121,74 +92,76 @@ Edit file
 Waiting for next step  00:08
 ```
 
-If more than four activities exist, the final bubble summarizes the remainder.
+Five or more activities are summarized as a remaining count.
 
-### Controls
+## Pet controls
 
 - Left-drag: move the pet
-- Left-click: toggle persistent speech bubbles
-- Right-click: change theme or language, toggle bubbles, reset position, or exit
+- Left-click: toggle always-visible bubbles
+- Right-click: settings, language, theme, reset position, or exit
 
-## State sharing and safety
-
-The tray monitor writes the pet state here:
+User settings are stored in:
 
 ```text
-%USERPROFILE%\.devspace\devspace-status.json
+%USERPROFILE%\.devspace\devspace-pet-settings.json
+%USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-Only safe summaries are written:
+## Uninstall
+
+Run `Uninstall.cmd` from the installation directory or the extracted release folder.
+
+You can choose whether to remove the saved theme, language, and pet position. The uninstaller does not modify DevSpace itself or any DevSpace project.
+
+## Automatic detection and portability
+
+The monitor automatically reads the current computer's:
+
+- `%USERPROFILE%\.devspace\config.json`
+- DevSpace port
+- `allowedRoots`
+- Opened workspace paths
+- `serve.log`
+
+Self-tests cover alternate drives, spaces in paths, non-English paths, and UNC paths. If a custom log location cannot be detected, pass it explicitly with `DevSpaceStatus.ps1 -LogPath ...`.
+
+## Privacy and safety
+
+The pet state JSON contains only safe summaries:
 
 - State
 - Project name
-- Short operation names such as `dotnet test`
+- Short operation such as `dotnet test`
 - Elapsed time
 - Success or failure
 
-Full command lines, credentials, and environment variables are not written to the pet state file.
+Full command lines, environment variables, credentials, and tokens are not written to the pet state file.
 
-## Main options
-
-The port and allowed roots are detected from `config.json`, but they can also be overridden.
-
-```powershell
-.\DevSpaceStatus.ps1 `
-  -RefreshSeconds 3 `
-  -CompletionQuietSeconds 45 `
-  -StallMinutes 30 `
-  -Port 7676 `
-  -LogPath "$env:USERPROFILE\.devspace\serve.log"
-```
-
-```powershell
-.\DevSpacePet.ps1 -StateRefreshMilliseconds 750
-```
-
-## Validation
+## Run from source
 
 ```powershell
 .\tests\ParseScripts.ps1
+.\Start-DevSpaceStatus.cmd
 ```
 
-The test suite checks:
+Build a release package with:
 
-- Windows PowerShell 5.1 parsing
-- Workspaces on another drive
-- Project paths containing spaces
-- UNC paths
-- Japanese and English localization
+```powershell
+.\scripts\Build-Release.ps1
+```
 
-The same validation runs in GitHub Actions.
+Outputs:
 
-## Files
+```text
+artifacts\DevSpace-Status-Pet-vX.Y.Z.zip
+artifacts\DevSpace-Status-Pet-vX.Y.Z.zip.sha256
+```
 
-- `DevSpaceLocalization.ps1`: Japanese and English strings plus shared settings loading
-- `DevSpaceStatus.ps1`: status detection, parallel activity aggregation, tray UI, and notifications
-- `DevSpacePet.ps1`: themes, language selection, multiple bubbles, and animation
-- `Start-DevSpaceStatus.cmd`: starts the monitor and pet
-- `Check-DevSpaceStatus.cmd`: performs a one-time status check
-- `Install-DevSpaceStatus.ps1`: creates shortcuts and startup registration
-- `Install-DevSpaceStatus.cmd`: launches the installer
+Pushing a `vX.Y.Z` tag makes GitHub Actions validate the project, build the ZIP, and publish a GitHub Release automatically.
+
+## Changelog
+
+[CHANGELOG.md](CHANGELOG.md)
 
 ## License
 

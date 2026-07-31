@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
+  <rect width="800" height="420" rx="24" fill="#10141c"/>
+  <rect x="36" y="38" width="380" height="92" rx="18" fill="#f8fafc" stroke="#4ba0ff" stroke-width="4"/>
+  <text x="62" y="70" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">VideoShrink</text>
+  <text x="62" y="98" font-family="Segoe UI, sans-serif" font-size="18" fill="#4c586b">dotnet test</text>
+  <circle cx="64" cy="116" r="6" fill="#4be182"/>
+  <text x="80" y="122" font-family="Segoe UI, sans-serif" font-size="16" fill="#4c586b">Working 03:21</text>
+  <rect x="36" y="148" width="380" height="92" rx="18" fill="#f8fafc" stroke="#ffcb3a" stroke-width="4"/>
+  <text x="62" y="180" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">personal-hub</text>
+  <text x="62" y="208" font-family="Segoe UI, sans-serif" font-size="18" fill="#4c586b">Edit file</text>
+  <circle cx="64" cy="226" r="6" fill="#ffcb3a"/>
+  <text x="80" y="232" font-family="Segoe UI, sans-serif" font-size="16" fill="#4c586b">Waiting 00:08</text>
+  <ellipse cx="603" cy="360" rx="120" ry="18" fill="#4ba0ff" opacity=".25"/>
+  <rect x="535" y="218" width="136" height="122" rx="28" fill="#202735" stroke="#4ba0ff" stroke-width="6"/>
+  <rect x="510" y="110" width="186" height="132" rx="42" fill="#202735" stroke="#4ba0ff" stroke-width="7"/>
+  <rect x="532" y="138" width="142" height="70" rx="24" fill="#0c1119"/>
+  <ellipse cx="569" cy="173" rx="14" ry="18" fill="#4be182"/>
+  <ellipse cx="637" cy="173" rx="14" ry="18" fill="#4be182"/>
+  <line x1="603" y1="111" x2="620" y2="74" stroke="#4ba0ff" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="624" cy="65" r="14" fill="#4ba0ff"/>
+  <circle cx="603" cy="276" r="20" fill="#4be182"/>
+  <line x1="535" y1="252" x2="492" y2="280" stroke="#4ba0ff" stroke-width="10" stroke-linecap="round"/>
+  <line x1="671" y1="252" x2="714" y2="280" stroke="#4ba0ff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="485" cy="286" r="18" fill="#202735" stroke="#4ba0ff" stroke-width="5"/>
+  <circle cx="721" cy="286" r="18" fill="#202735" stroke="#4ba0ff" stroke-width="5"/>
+  <rect x="541" y="334" width="52" height="20" rx="10" fill="#202735" stroke="#4ba0ff" stroke-width="5"/>
+  <rect x="613" y="334" width="52" height="20" rx="10" fill="#202735" stroke="#4ba0ff" stroke-width="5"/>
+  <text x="36" y="390" font-family="Segoe UI, sans-serif" font-size="18" fill="#aeb6c5">Classic theme · status colors</text>
+</svg>
