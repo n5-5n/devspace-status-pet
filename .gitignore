@@ -11,6 +11,10 @@ Desktop.ini
 # Local build/editor files
 .vs/
 .vscode/
+.dotnet-home/
+.nuget/
+**/bin/
+**/obj/
 artifacts/
 TestResults/
 

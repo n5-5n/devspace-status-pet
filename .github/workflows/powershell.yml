@@ -1,20 +1,53 @@
-name: PowerShell validation
+name: Windows validation
 
 on:
   push:
   pull_request:
 
 jobs:
-  parse:
+  validate:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
-      - name: Parse PowerShell scripts and run self-tests
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Validate PowerShell v0.1 compatibility layer
         shell: powershell
         run: .\tests\ParseScripts.ps1
-      - name: Build release package
+
+      - name: Build PowerShell v0.1 release package
         shell: powershell
         run: .\scripts\Build-Release.ps1 -SkipTests | Format-List
-      - name: Smoke-test isolated install and uninstall
+
+      - name: Smoke-test PowerShell v0.1 install and uninstall
         shell: powershell
         run: .\tests\InstallSmoke.ps1
+
+      - name: Build .NET v0.2 application
+        shell: powershell
+        run: dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
+
+      - name: Run .NET v0.2 smoke tests
+        shell: powershell
+        run: dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
+
+      - name: Publish .NET v0.2 single executable
+        shell: powershell
+        run: |
+          dotnet publish .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            --no-restore `
+            -o .\artifacts\dotnet-v0.2
+          $files = @(Get-ChildItem .\artifacts\dotnet-v0.2 -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'DevSpaceStatusPet.exe') {
+            throw "Expected one DevSpaceStatusPet.exe, found: $($files.Name -join ', ')"
+          }
+
+      - name: Smoke-test .NET v0.2 self-install and self-uninstall
+        shell: powershell
+        run: .\tests\DotNetInstallSmoke.ps1 -ExecutablePath .\artifacts\dotnet-v0.2\DevSpaceStatusPet.exe

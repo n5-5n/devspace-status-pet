@@ -4,6 +4,9 @@
 
 A Windows tray monitor and animated desktop pet for local DevSpace activity.
 
+> **Stable release: v0.1.0 (PowerShell)**<br>
+> See the [v0.2 English README](README.v0.2.en.md) for the C# / .NET 8 single-executable alpha.
+
 - Detects real local processing quickly
 - Shows project, operation, and elapsed time
 - Displays multiple bubbles for parallel chats, workspaces, and processes

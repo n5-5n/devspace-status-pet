@@ -12,7 +12,9 @@ $files = @(
     'Stop-DevSpaceStatusPet.ps1',
     'Uninstall-DevSpaceStatus.ps1',
     'scripts\Build-Release.ps1',
-    'tests\InstallSmoke.ps1'
+    'scripts\Build-DotNetRelease.ps1',
+    'tests\InstallSmoke.ps1',
+    'tests\DotNetInstallSmoke.ps1'
 )
 
 $failed = $false
