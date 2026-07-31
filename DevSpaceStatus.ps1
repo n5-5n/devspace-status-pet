@@ -1,6 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [switch]$Once,
+    [switch]$SelfTest,
     [ValidateRange(1, 60)]
     [int]$RefreshSeconds = 3,
     [ValidateRange(1, 1440)]
@@ -9,13 +10,94 @@ param(
     [int]$NotifyAfterSeconds = 10,
     [ValidateRange(5, 600)]
     [int]$CompletionQuietSeconds = 45,
-    [int]$Port = 7676,
-    [string]$LogPath = "$env:USERPROFILE\.devspace\serve.log",
-    [string]$StatePath = "$env:USERPROFILE\.devspace\devspace-status.json"
+    [ValidateRange(0, 65535)]
+    [int]$Port = 0,
+    [string]$LogPath = '',
+    [string]$ConfigPath = "$env:USERPROFILE\.devspace\config.json",
+    [string]$StatePath = "$env:USERPROFILE\.devspace\devspace-status.json",
+    [string]$SettingsPath = "$env:USERPROFILE\.devspace\devspace-pet-settings.json"
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
+
+$localizationPath = Join-Path $PSScriptRoot 'DevSpaceLocalization.ps1'
+if (-not (Test-Path -LiteralPath $localizationPath)) {
+    throw "Missing localization file: $localizationPath"
+}
+. $localizationPath
+
+$script:languagePreference = 'Auto'
+$script:language = Resolve-DevSpaceLanguage -Preference $script:languagePreference
+$script:allowedRoots = @()
+
+function L {
+    param(
+        [string]$Key,
+        [object[]]$Arguments = @()
+    )
+    return Get-DevSpaceText -Language $script:language -Key $Key -Arguments $Arguments
+}
+
+function Update-StatusLanguage {
+    $settings = Read-DevSpaceSharedSettings -Path $SettingsPath
+    $newPreference = [string]$settings.Language
+    $newLanguage = Resolve-DevSpaceLanguage -Preference $newPreference
+    if ($newPreference -ne $script:languagePreference -or $newLanguage -ne $script:language) {
+        $script:languagePreference = $newPreference
+        $script:language = $newLanguage
+        $script:logSnapshotCache = $null
+        $script:lastLogWriteUtc = [DateTime]::MinValue
+    }
+}
+
+function Initialize-DevSpaceRuntimeConfiguration {
+    $config = $null
+    try {
+        if (Test-Path -LiteralPath $ConfigPath) {
+            $configText = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::UTF8)
+            $config = $configText | ConvertFrom-Json -ErrorAction Stop
+        }
+    }
+    catch {
+        $config = $null
+    }
+
+    if ($Port -le 0) {
+        if ($null -ne $config -and $config.PSObject.Properties.Name -contains 'port' -and [int]$config.port -gt 0) {
+            $script:Port = [int]$config.port
+        }
+        else {
+            $script:Port = 7676
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($LogPath)) {
+        $configDirectory = Split-Path -Parent $ConfigPath
+        if ([string]::IsNullOrWhiteSpace($configDirectory)) {
+            $configDirectory = Join-Path $env:USERPROFILE '.devspace'
+        }
+        $script:LogPath = Join-Path $configDirectory 'serve.log'
+    }
+
+    $roots = New-Object System.Collections.ArrayList
+    if ($null -ne $config -and $config.PSObject.Properties.Name -contains 'allowedRoots') {
+        foreach ($root in @($config.allowedRoots)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$root)) {
+                try {
+                    [void]$roots.Add([System.IO.Path]::GetFullPath([string]$root).TrimEnd([char[]]"\/"))
+                }
+                catch {
+                    [void]$roots.Add(([string]$root).TrimEnd([char[]]"\/"))
+                }
+            }
+        }
+    }
+    $script:allowedRoots = @($roots | Select-Object -Unique)
+}
+
+Initialize-DevSpaceRuntimeConfiguration
+Update-StatusLanguage
 
 $script:lastLogWriteUtc = [DateTime]::MinValue
 $script:logSnapshotCache = $null
@@ -33,8 +115,8 @@ $script:stallNotified = $false
 $script:workSessionActive = $false
 $script:workSessionStartedAt = $null
 $script:workSessionLastActivityAt = $null
-$script:workSessionProject = '不明'
-$script:workSessionOperation = '作業'
+$script:workSessionProject = L 'Unknown'
+$script:workSessionOperation = L 'GenericWork'
 $script:workSessionLastTool = $null
 
 function Get-DevSpaceServerProcessId {
@@ -210,7 +292,16 @@ function Get-ProjectNameFromPath {
         $workspaceName = Split-Path -Leaf ($WorkspacePath.TrimEnd('\', '/'))
     }
 
-    if ($workspaceName -ieq 'Projects' -and -not [string]::IsNullOrWhiteSpace($RelativePath)) {
+    $normalizedWorkspacePath = Normalize-ComparablePath -Path $WorkspacePath
+    $workspaceIsAllowedRoot = $false
+    foreach ($allowedRoot in $script:allowedRoots) {
+        if ((Normalize-ComparablePath -Path ([string]$allowedRoot)) -eq $normalizedWorkspacePath) {
+            $workspaceIsAllowedRoot = $true
+            break
+        }
+    }
+
+    if ($workspaceIsAllowedRoot -and -not [string]::IsNullOrWhiteSpace($RelativePath)) {
         $normalized = $RelativePath.TrimStart('.', '\', '/')
         $firstPart = ($normalized -split '[\\/]')[0]
         if (-not [string]::IsNullOrWhiteSpace($firstPart)) {
@@ -230,7 +321,7 @@ function Get-ProjectNameFromPath {
         }
     }
 
-    return '不明'
+    return L 'Unknown'
 }
 
 function Format-ToolOperation {
@@ -241,11 +332,11 @@ function Format-ToolOperation {
     $workingDirectory = [string](Get-PropertyValue -Object $Entry -Name 'workingDirectory' -DefaultValue '')
 
     switch ($tool) {
-        'read'  { if ($path) { return "読取: $path" }; return 'ファイル読取' }
-        'edit'  { if ($path) { return "編集: $path" }; return 'ファイル編集' }
-        'write' { if ($path) { return "作成: $path" }; return 'ファイル作成' }
-        'bash'  { if ($workingDirectory -and $workingDirectory -ne '.') { return "コマンド: $workingDirectory" }; return 'コマンド実行' }
-        'open_workspace' { return 'ワークスペースを開く' }
+        'read'  { if ($path) { return L 'ReadTarget' @($path) }; return L 'FileRead' }
+        'edit'  { if ($path) { return L 'EditTarget' @($path) }; return L 'FileEdit' }
+        'write' { if ($path) { return L 'WriteTarget' @($path) }; return L 'FileWrite' }
+        'bash'  { if ($workingDirectory -and $workingDirectory -ne '.') { return L 'CommandTarget' @($workingDirectory) }; return L 'CommandRun' }
+        'open_workspace' { return L 'OpenWorkspace' }
         default { return $tool }
     }
 }
@@ -382,7 +473,7 @@ function Get-SafeProcessOperation {
     param([object[]]$Processes)
 
     if ($Processes.Count -eq 0) {
-        return 'ローカル処理'
+        return L 'LocalProcessing'
     }
 
     $candidates = foreach ($process in $Processes) {
@@ -445,22 +536,99 @@ function Get-SafeProcessOperation {
 
     $best = $candidates | Sort-Object -Property Score, CreationDate -Descending | Select-Object -First 1
     if ($null -eq $best -or [string]::IsNullOrWhiteSpace([string]$best.Operation)) {
-        return 'ローカル処理'
+        return L 'LocalProcessing'
     }
     return [string]$best.Operation
+}
+
+function Normalize-ComparablePath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+    try {
+        $Path = [System.IO.Path]::GetFullPath($Path)
+    }
+    catch {
+        # Keep the original path if it cannot be canonicalized.
+    }
+    return $Path.TrimEnd([char[]]"\/").Replace('\', '/').ToLowerInvariant()
+}
+
+function Get-ProjectNameAfterRoot {
+    param(
+        [string]$NormalizedCommandLine,
+        [string]$NormalizedRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($NormalizedRoot)) {
+        return $null
+    }
+    $prefix = $NormalizedRoot.TrimEnd('/') + '/'
+    $index = $NormalizedCommandLine.IndexOf($prefix, [System.StringComparison]::OrdinalIgnoreCase)
+    if ($index -lt 0) {
+        return $null
+    }
+
+    $remainder = $NormalizedCommandLine.Substring($index + $prefix.Length)
+    $slashIndex = $remainder.IndexOf('/')
+    if ($slashIndex -gt 0) {
+        return $remainder.Substring(0, $slashIndex).Trim('"', "'")
+    }
+
+    $quoteIndex = $remainder.IndexOf('"')
+    if ($quoteIndex -gt 0) {
+        return $remainder.Substring(0, $quoteIndex).Trim()
+    }
+    return $null
 }
 
 function Get-ProjectNameFromProcesses {
     param([object[]]$Processes)
 
+    $workspacePaths = @($script:workspaceMapCache.Values |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Sort-Object { ([string]$_).Length } -Descending -Unique)
+    $normalizedRoots = @($script:allowedRoots | ForEach-Object { Normalize-ComparablePath -Path ([string]$_) })
     $projectNames = New-Object System.Collections.ArrayList
+
     foreach ($process in $Processes) {
         $commandLine = [string]$process.CommandLine
-        if ($commandLine -match '(?i)[A-Z]:[\\/]Users[\\/][^\\/\s"]+[\\/]Documents[\\/]Projects[\\/]([^\\/\s"]+)') {
-            $projectName = [string]$Matches[1]
-            if (-not [string]::IsNullOrWhiteSpace($projectName) -and $projectNames -notcontains $projectName) {
-                [void]$projectNames.Add($projectName)
+        if ([string]::IsNullOrWhiteSpace($commandLine)) {
+            continue
+        }
+        $normalizedCommandLine = $commandLine.Replace('\', '/')
+        $projectName = $null
+
+        foreach ($workspacePath in $workspacePaths) {
+            $normalizedWorkspace = Normalize-ComparablePath -Path ([string]$workspacePath)
+            if ($normalizedCommandLine.IndexOf($normalizedWorkspace, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                continue
             }
+
+            if ($normalizedRoots -contains $normalizedWorkspace) {
+                $projectName = Get-ProjectNameAfterRoot -NormalizedCommandLine $normalizedCommandLine -NormalizedRoot $normalizedWorkspace
+            }
+            else {
+                $projectName = Split-Path -Leaf (([string]$workspacePath).TrimEnd([char[]]"\/"))
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$projectName)) {
+                break
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace([string]$projectName)) {
+            foreach ($normalizedRoot in $normalizedRoots) {
+                $projectName = Get-ProjectNameAfterRoot -NormalizedCommandLine $normalizedCommandLine -NormalizedRoot $normalizedRoot
+                if (-not [string]::IsNullOrWhiteSpace([string]$projectName)) {
+                    break
+                }
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace([string]$projectName) -and $projectNames -notcontains $projectName) {
+            [void]$projectNames.Add($projectName)
         }
     }
 
@@ -513,7 +681,7 @@ function New-ProcessActivity {
     $projectName = Get-ProjectNameFromProcesses -Processes $processes
     $estimated = $false
     if ([string]::IsNullOrWhiteSpace([string]$projectName)) {
-        $projectName = if ($null -ne $FallbackTool) { [string]$FallbackTool.ProjectName } else { '不明' }
+        $projectName = if ($null -ne $FallbackTool) { [string]$FallbackTool.ProjectName } else { L 'Unknown' }
         $estimated = $true
     }
 
@@ -521,7 +689,7 @@ function New-ProcessActivity {
         Id               = "process:$($Group.RootProcessId)"
         Workspace        = ''
         State            = 'Working'
-        Label            = '作業中'
+        Label            = L 'Working'
         ProjectName      = $projectName
         ProjectEstimated = $estimated
         Operation        = Get-SafeProcessOperation -Processes $processes
@@ -565,7 +733,7 @@ function Get-RecentWorkspaceActivities {
             Id               = "workspace:$($tool.Workspace)"
             Workspace        = [string]$tool.Workspace
             State            = if ($tool.Success) { 'Waiting' } else { 'Failed' }
-            Label            = if ($tool.Success) { '次の処理待ち' } else { '処理失敗' }
+            Label            = if ($tool.Success) { L 'Waiting' } else { L 'Failed' }
             ProjectName      = $project
             ProjectEstimated = $false
             Operation        = [string]$tool.Operation
@@ -596,15 +764,15 @@ function Get-DevSpaceStatus {
     if ($null -eq $serverProcessId) {
         return [pscustomobject]@{
             State            = 'Stopped'
-            Label            = '停止中'
-            Summary          = 'DevSpaceは停止しています'
+            Label            = L 'Stopped'
+            Summary          = L 'StoppedSummary'
             ServerProcessId  = $null
             ActiveProcesses  = @()
             Activities       = @()
             LastTool         = $lastTool
-            ProjectName      = if ($null -ne $lastTool) { $lastTool.ProjectName } else { '不明' }
+            ProjectName      = if ($null -ne $lastTool) { $lastTool.ProjectName } else { L 'Unknown' }
             ProjectEstimated = $false
-            Operation        = '停止'
+            Operation        = L 'StopOperation'
             StartedAt        = $null
             ElapsedSeconds   = 0.0
             ActiveCpuSeconds = 0.0
@@ -629,13 +797,13 @@ function Get-DevSpaceStatus {
             [string]$processActivities[0].Operation
         }
         else {
-            "$($processActivities.Count)件を並列実行"
+            L 'ParallelOperation' @($processActivities.Count)
         }
 
         return [pscustomobject]@{
             State            = 'Working'
-            Label            = '作業中'
-            Summary          = if ($processActivities.Count -eq 1) { "DevSpaceが作業中です ($operation)" } else { "DevSpaceが$($processActivities.Count)件を並列実行中です" }
+            Label            = L 'Working'
+            Summary          = if ($processActivities.Count -eq 1) { L 'WorkingSummary' @($operation) } else { L 'ParallelSummary' @($processActivities.Count) }
             ServerProcessId  = $serverProcessId
             ActiveProcesses  = $activeProcesses
             Activities       = $activities
@@ -655,8 +823,8 @@ function Get-DevSpaceStatus {
         if ($secondsSinceCompletion -ge 0 -and $secondsSinceCompletion -lt 12) {
             return [pscustomobject]@{
                 State            = if ($lastTool.Success) { 'JustFinished' } else { 'Failed' }
-                Label            = if ($lastTool.Success) { '次の処理待ち' } else { '処理失敗' }
-                Summary          = if ($lastTool.Success) { '直前の処理が終了し、次の操作を待っています' } else { '直前の処理が失敗しました' }
+                Label            = if ($lastTool.Success) { L 'Waiting' } else { L 'Failed' }
+                Summary          = if ($lastTool.Success) { L 'WaitingSummary' } else { L 'FailedSummary' }
                 ServerProcessId  = $serverProcessId
                 ActiveProcesses  = @()
                 Activities       = $activities
@@ -674,15 +842,15 @@ function Get-DevSpaceStatus {
 
     return [pscustomobject]@{
         State            = 'Idle'
-        Label            = '待機中'
-        Summary          = 'DevSpaceは起動済みで、現在は待機中です'
+        Label            = L 'Idle'
+        Summary          = L 'IdleSummary'
         ServerProcessId  = $serverProcessId
         ActiveProcesses  = @()
         Activities       = $activities
         LastTool         = $lastTool
-        ProjectName      = if ($null -ne $lastTool) { $lastTool.ProjectName } else { '不明' }
+        ProjectName      = if ($null -ne $lastTool) { $lastTool.ProjectName } else { L 'Unknown' }
         ProjectEstimated = $false
-        Operation        = '待機'
+        Operation        = L 'IdleOperation'
         StartedAt        = $null
         ElapsedSeconds   = 0.0
         ActiveCpuSeconds = 0.0
@@ -721,8 +889,8 @@ function Update-StallState {
         $inactiveSeconds = if ($null -ne $script:lastActivityAt) { ($now - $script:lastActivityAt).TotalSeconds } else { 0.0 }
         if ($Status.ElapsedSeconds -ge ($StallMinutes * 60) -and $inactiveSeconds -ge ($StallMinutes * 60)) {
             $Status.State = 'Stalled'
-            $Status.Label = '停滞の疑い'
-            $Status.Summary = "$StallMinutes分以上、CPU・ログ更新が確認できません"
+            $Status.Label = L 'Stalled'
+            $Status.Summary = L 'StalledSummary' @($StallMinutes)
         }
     }
     else {
@@ -751,12 +919,12 @@ function Format-LastToolText {
     param($LastTool)
 
     if ($null -eq $LastTool) {
-        return '最終作業: 記録なし'
+        return L 'LastNone'
     }
 
-    $result = if ($LastTool.Success) { '成功' } else { '失敗' }
+    $result = if ($LastTool.Success) { L 'Success' } else { L 'Failure' }
     $duration = Format-Duration -TotalSeconds ($LastTool.DurationMs / 1000.0)
-    return "最終作業: $($LastTool.Tool) / $result / $duration / $($LastTool.Time.ToString('HH:mm:ss'))"
+    return L 'LastFormat' @($LastTool.Tool, $result, $duration, $LastTool.Time.ToString('HH:mm:ss'))
 }
 
 function Get-ToolKey {
@@ -807,7 +975,8 @@ function Write-PetState {
         }
 
         $payload = [ordered]@{
-            SchemaVersion   = 2
+            SchemaVersion   = 3
+            Language        = [string]$script:language
             State           = [string]$Status.State
             Label           = [string]$Status.Label
             Summary         = [string]$Status.Summary
@@ -849,10 +1018,10 @@ function Write-OneShotStatus {
 
     Write-Host "DevSpace: $($status.Label)" -ForegroundColor $stateColor
     Write-Host $status.Summary
-    Write-Host "プロジェクト: $($status.ProjectName)"
-    Write-Host "処理: $($status.Operation)"
+    Write-Host (L 'ProjectPrefix' @($status.ProjectName))
+    Write-Host (L 'OperationPrefix' @($status.Operation))
     if ($status.ElapsedSeconds -gt 0) {
-        Write-Host "経過時間: $(Format-Duration -TotalSeconds $status.ElapsedSeconds)"
+        Write-Host (L 'ElapsedPrefix' @((Format-Duration -TotalSeconds $status.ElapsedSeconds)))
     }
     if ($null -ne $status.ServerProcessId) {
         Write-Host "Server PID: $($status.ServerProcessId) / Port: $Port"
@@ -861,11 +1030,59 @@ function Write-OneShotStatus {
 
     if ($status.ActiveProcesses.Count -gt 0) {
         Write-Host ''
-        Write-Host '実行中プロセス:'
+        Write-Host (L 'RunningProcesses')
         $status.ActiveProcesses |
             Select-Object ProcessId, Name, CreationDate, CommandLine |
             Format-Table -AutoSize -Wrap
     }
+}
+
+if ($SelfTest) {
+    $originalRoots = $script:allowedRoots
+    $originalWorkspaceMap = $script:workspaceMapCache
+    $originalLanguage = $script:language
+    try {
+        $script:allowedRoots = @('D:\Dev Work')
+        $script:workspaceMapCache = @{ 'ws-project' = 'D:\Dev Work\Alpha Project' }
+        $projectProcess = [pscustomobject]@{ CommandLine = '"D:\Dev Work\Alpha Project\bin\tool.exe"'; ProcessId = 1 }
+        $projectResult = Get-ProjectNameFromProcesses -Processes @($projectProcess)
+        if ($projectResult -ne 'Alpha Project') {
+            throw "Workspace path detection failed: $projectResult"
+        }
+
+        $script:workspaceMapCache = @{ 'ws-root' = 'D:\Dev Work' }
+        $rootProcess = [pscustomobject]@{ CommandLine = '"D:\Dev Work\Beta Project\tools\runner.exe"'; ProcessId = 2 }
+        $rootResult = Get-ProjectNameFromProcesses -Processes @($rootProcess)
+        if ($rootResult -ne 'Beta Project') {
+            throw "Allowed-root detection failed: $rootResult"
+        }
+
+        $script:allowedRoots = @('\\server\share\repos')
+        $script:workspaceMapCache = @{}
+        $uncProcess = [pscustomobject]@{ CommandLine = '"\\server\share\repos\Gamma App\bin\agent.exe"'; ProcessId = 3 }
+        $uncResult = Get-ProjectNameFromProcesses -Processes @($uncProcess)
+        if ($uncResult -ne 'Gamma App') {
+            throw "UNC path detection failed: $uncResult"
+        }
+
+        $entry = [pscustomobject]@{ tool = 'edit'; path = 'src/app.ps1'; workingDirectory = '.' }
+        $script:language = 'English'
+        if ((Format-ToolOperation -Entry $entry) -ne 'Edit: src/app.ps1') {
+            throw 'English localization test failed.'
+        }
+        $script:language = 'Japanese'
+        if ((Format-ToolOperation -Entry $entry) -ne '編集: src/app.ps1') {
+            throw 'Japanese localization test failed.'
+        }
+
+        Write-Host '[OK] DevSpace Status portability and localization self-test'
+    }
+    finally {
+        $script:allowedRoots = $originalRoots
+        $script:workspaceMapCache = $originalWorkspaceMap
+        $script:language = $originalLanguage
+    }
+    exit 0
 }
 
 if ($Once) {
@@ -951,10 +1168,10 @@ function Update-WorkSessionNotification {
         }
 
         $script:workSessionLastActivityAt = $now
-        if (-not [string]::IsNullOrWhiteSpace([string]$Status.ProjectName) -and $Status.ProjectName -ne '不明') {
+        if (-not [string]::IsNullOrWhiteSpace([string]$Status.ProjectName) -and $Status.ProjectName -ne (L 'Unknown')) {
             $script:workSessionProject = [string]$Status.ProjectName
         }
-        if (-not [string]::IsNullOrWhiteSpace([string]$Status.Operation) -and $Status.Operation -notin @('待機', '停止')) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$Status.Operation) -and $Status.Operation -notin @((L 'IdleOperation'), (L 'StopOperation'))) {
             $script:workSessionOperation = [string]$Status.Operation
         }
         if ($newToolDetected -and $null -ne $Status.LastTool) {
@@ -981,17 +1198,17 @@ function Update-WorkSessionNotification {
 
     if ($sessionSeconds -ge $NotifyAfterSeconds) {
         $finalFailed = $null -ne $script:workSessionLastTool -and -not [bool]$script:workSessionLastTool.Success
-        $title = if ($finalFailed) { 'DevSpace 作業失敗' } else { 'DevSpace 作業区切り完了' }
+        $title = if ($finalFailed) { L 'WorkFailedTitle' } else { L 'WorkDoneTitle' }
         $icon = if ($finalFailed) { [System.Windows.Forms.ToolTipIcon]::Error } else { [System.Windows.Forms.ToolTipIcon]::Info }
-        $text = "$($script:workSessionProject)`n$($script:workSessionOperation)`n作業時間: $(Format-Duration -TotalSeconds $sessionSeconds)"
+        $text = "$($script:workSessionProject)`n$($script:workSessionOperation)`n$(L 'WorkTime' @((Format-Duration -TotalSeconds $sessionSeconds)))"
         Show-TrayNotification -Title $title -Text $text -Icon $icon
     }
 
     $script:workSessionActive = $false
     $script:workSessionStartedAt = $null
     $script:workSessionLastActivityAt = $null
-    $script:workSessionProject = '不明'
-    $script:workSessionOperation = '作業'
+    $script:workSessionProject = L 'Unknown'
+    $script:workSessionOperation = L 'GenericWork'
     $script:workSessionLastTool = $null
 }
 
@@ -1014,62 +1231,72 @@ $icons = @{
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $notifyIcon.Visible = $true
 $notifyIcon.Icon = $icons.Idle
-$notifyIcon.Text = 'DevSpace: 確認中'
+$notifyIcon.Text = "DevSpace: $(L 'Checking')"
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $statusMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$statusMenuItem.Text = '状態を確認中...'
+$statusMenuItem.Text = L 'CheckingStatus'
 $statusMenuItem.Enabled = $false
 [void]$menu.Items.Add($statusMenuItem)
 
 $projectMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$projectMenuItem.Text = 'プロジェクト: 確認中'
+$projectMenuItem.Text = L 'ProjectPrefix' @((L 'Checking'))
 $projectMenuItem.Enabled = $false
 [void]$menu.Items.Add($projectMenuItem)
 
 $operationMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$operationMenuItem.Text = '処理: 確認中'
+$operationMenuItem.Text = L 'OperationPrefix' @((L 'Checking'))
 $operationMenuItem.Enabled = $false
 [void]$menu.Items.Add($operationMenuItem)
 
 $elapsedMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$elapsedMenuItem.Text = '経過時間: --:--'
+$elapsedMenuItem.Text = L 'ElapsedPrefix' @('--:--')
 $elapsedMenuItem.Enabled = $false
 [void]$menu.Items.Add($elapsedMenuItem)
 
 $lastToolMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$lastToolMenuItem.Text = '最終作業: 記録なし'
+$lastToolMenuItem.Text = L 'LastNone'
 $lastToolMenuItem.Enabled = $false
 [void]$menu.Items.Add($lastToolMenuItem)
 
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 
 $refreshMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$refreshMenuItem.Text = '今すぐ再確認'
+$refreshMenuItem.Text = L 'RefreshNow'
 [void]$menu.Items.Add($refreshMenuItem)
 
 $detailsMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$detailsMenuItem.Text = '詳細を表示'
+$detailsMenuItem.Text = L 'Details'
 [void]$menu.Items.Add($detailsMenuItem)
 
 $logMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$logMenuItem.Text = 'ログを開く'
+$logMenuItem.Text = L 'OpenLog'
 [void]$menu.Items.Add($logMenuItem)
 
 $folderMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$folderMenuItem.Text = '.devspaceフォルダーを開く'
+$folderMenuItem.Text = L 'OpenFolder'
 [void]$menu.Items.Add($folderMenuItem)
 
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $exitMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$exitMenuItem.Text = '終了'
+$exitMenuItem.Text = L 'Exit'
 [void]$menu.Items.Add($exitMenuItem)
 
 $notifyIcon.ContextMenuStrip = $menu
 $script:currentStatus = $null
 
+function Update-TrayStaticText {
+    $refreshMenuItem.Text = L 'RefreshNow'
+    $detailsMenuItem.Text = L 'Details'
+    $logMenuItem.Text = L 'OpenLog'
+    $folderMenuItem.Text = L 'OpenFolder'
+    $exitMenuItem.Text = L 'Exit'
+}
+
 function Update-TrayStatus {
     try {
+        Update-StatusLanguage
+        Update-TrayStaticText
         $status = Get-DevSpaceStatus -ListenPort $Port -ServeLogPath $LogPath
         $status = Update-StallState -Status $status
         $script:currentStatus = $status
@@ -1087,28 +1314,28 @@ function Update-TrayStatus {
         $notifyIcon.Text = $tooltip
 
         $statusMenuItem.Text = "$($status.Label) — $($status.Summary)"
-        $projectSuffix = if ($status.ProjectEstimated) { '（推定）' } else { '' }
-        $projectMenuItem.Text = "プロジェクト: $($status.ProjectName)$projectSuffix"
-        $operationMenuItem.Text = "処理: $($status.Operation)"
-        $elapsedMenuItem.Text = "経過時間: $elapsedText"
+        $projectSuffix = if ($status.ProjectEstimated) { L 'EstimatedSuffix' } else { '' }
+        $projectMenuItem.Text = L 'ProjectPrefix' @("$($status.ProjectName)$projectSuffix")
+        $operationMenuItem.Text = L 'OperationPrefix' @($status.Operation)
+        $elapsedMenuItem.Text = L 'ElapsedPrefix' @($elapsedText)
         $lastToolMenuItem.Text = Format-LastToolText -LastTool $status.LastTool
 
         Update-WorkSessionNotification -Status $status
 
         if ($status.State -eq 'Stalled' -and -not $script:stallNotified) {
             $script:stallNotified = $true
-            Show-TrayNotification -Title 'DevSpace 停滞の疑い' -Text "$($status.ProjectName)`n$($status.Operation)`n$($status.Summary)" -Icon ([System.Windows.Forms.ToolTipIcon]::Warning)
+            Show-TrayNotification -Title (L 'StallTitle') -Text "$($status.ProjectName)`n$($status.Operation)`n$($status.Summary)" -Icon ([System.Windows.Forms.ToolTipIcon]::Warning)
         }
 
         if ($script:previousState -ne $null -and $status.State -eq 'Stopped' -and $script:previousState -ne 'Stopped') {
-            Show-TrayNotification -Title 'DevSpace 停止' -Text 'DevSpaceサーバーが停止しました。' -Icon ([System.Windows.Forms.ToolTipIcon]::Error)
+            Show-TrayNotification -Title (L 'StopTitle') -Text (L 'StopText') -Icon ([System.Windows.Forms.ToolTipIcon]::Error)
         }
         $script:previousState = $status.State
     }
     catch {
         $notifyIcon.Icon = $icons.Stopped
-        $notifyIcon.Text = 'DevSpace: 状態確認エラー'
-        $statusMenuItem.Text = '状態確認エラー'
+        $notifyIcon.Text = "DevSpace: $(L 'StatusError')"
+        $statusMenuItem.Text = L 'StatusError'
     }
 }
 
@@ -1121,16 +1348,16 @@ $detailsMenuItem.Add_Click({
             ($status.ActiveProcesses | ForEach-Object { "PID $($_.ProcessId): $($_.Name)" }) -join "`n"
         }
         else {
-            'なし'
+            L 'None'
         }
         $message = @(
-            "状態: $($status.Label)",
-            "プロジェクト: $($status.ProjectName)",
-            "処理: $($status.Operation)",
-            "経過時間: $elapsedText",
+            (L 'StatusPrefix' @($status.Label)),
+            (L 'ProjectPrefix' @($status.ProjectName)),
+            (L 'OperationPrefix' @($status.Operation)),
+            (L 'ElapsedPrefix' @($elapsedText)),
             (Format-LastToolText -LastTool $status.LastTool),
             '',
-            '実行中プロセス:',
+            (L 'RunningProcesses'),
             $processText
         ) -join "`n"
         [System.Windows.Forms.MessageBox]::Show($message, 'DevSpace Status') | Out-Null
@@ -1141,7 +1368,7 @@ $logMenuItem.Add_Click({
         Start-Process notepad.exe -ArgumentList @($LogPath)
     }
     else {
-        [System.Windows.Forms.MessageBox]::Show("ログが見つかりません。`n$LogPath", 'DevSpace Status') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("$(L 'LogMissing')`n$LogPath", 'DevSpace Status') | Out-Null
     }
 })
 $folderMenuItem.Add_Click({
@@ -1156,7 +1383,7 @@ $notifyIcon.Add_MouseClick({
         $status = $script:currentStatus
         $elapsedText = if ($status.ElapsedSeconds -gt 0) { Format-Duration -TotalSeconds $status.ElapsedSeconds } else { '--:--' }
         $notifyIcon.BalloonTipTitle = "DevSpace: $($status.Label)"
-        $notifyIcon.BalloonTipText = "$($status.ProjectName)`n$($status.Operation)`n経過時間: $elapsedText"
+        $notifyIcon.BalloonTipText = "$($status.ProjectName)`n$($status.Operation)`n$(L 'ElapsedPrefix' @($elapsedText))"
         $notifyIcon.BalloonTipIcon = if ($status.State -eq 'Stopped' -or $status.State -eq 'Failed') {
             [System.Windows.Forms.ToolTipIcon]::Error
         }

@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $files = @(
+    'DevSpaceLocalization.ps1',
     'DevSpaceStatus.ps1',
     'DevSpacePet.ps1',
     'Install-DevSpaceStatus.ps1'
@@ -30,4 +31,14 @@ foreach ($file in $files) {
 
 if ($failed) {
     throw 'PowerShell parse validation failed.'
+}
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'DevSpaceStatus.ps1') -SelfTest
+if ($LASTEXITCODE -ne 0) {
+    throw 'Portability and localization self-test failed.'
+}
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'DevSpacePet.ps1') -SelfTest
+if ($LASTEXITCODE -ne 0) {
+    throw 'Pet localization self-test failed.'
 }

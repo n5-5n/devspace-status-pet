@@ -1,5 +1,6 @@
 ﻿[CmdletBinding()]
 param(
+    [switch]$SelfTest,
     [ValidateRange(100, 5000)]
     [int]$StateRefreshMilliseconds = 750,
     [string]$StatePath = "$env:USERPROFILE\.devspace\devspace-status.json",
@@ -9,6 +10,36 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
+
+$localizationPath = Join-Path $PSScriptRoot 'DevSpaceLocalization.ps1'
+if (-not (Test-Path -LiteralPath $localizationPath)) {
+    throw "Missing localization file: $localizationPath"
+}
+. $localizationPath
+
+$script:languagePreference = 'Auto'
+$script:language = Resolve-DevSpaceLanguage -Preference $script:languagePreference
+
+function P {
+    param(
+        [string]$Key,
+        [object[]]$Arguments = @()
+    )
+    return Get-DevSpaceText -Language $script:language -Key $Key -Arguments $Arguments
+}
+
+if ($SelfTest) {
+    $script:language = 'English'
+    if ((P 'ShowBubble') -ne 'Always show bubbles' -or (P 'Theme') -ne 'Theme') {
+        throw 'English pet localization test failed.'
+    }
+    $script:language = 'Japanese'
+    if ((P 'ShowBubble') -ne '吹き出しを常時表示' -or (P 'Theme') -ne 'テーマ') {
+        throw 'Japanese pet localization test failed.'
+    }
+    Write-Host '[OK] DevSpace Pet localization self-test'
+    exit 0
+}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -91,29 +122,7 @@ function Read-PetState {
 }
 
 function Read-PetSettings {
-    $settings = [pscustomobject]@{
-        Theme      = 'Classic'
-        ShowBubble = $true
-    }
-
-    try {
-        if (-not (Test-Path -LiteralPath $SettingsPath)) {
-            return $settings
-        }
-        $json = [System.IO.File]::ReadAllText($SettingsPath, [System.Text.Encoding]::UTF8)
-        $saved = $json | ConvertFrom-Json -ErrorAction Stop
-        if ($saved.PSObject.Properties.Name -contains 'Theme' -and [string]$saved.Theme -in @('Classic', 'Neon')) {
-            $settings.Theme = [string]$saved.Theme
-        }
-        if ($saved.PSObject.Properties.Name -contains 'ShowBubble') {
-            $settings.ShowBubble = [bool]$saved.ShowBubble
-        }
-    }
-    catch {
-        # Defaults are safe.
-    }
-
-    return $settings
+    return Read-DevSpaceSharedSettings -Path $SettingsPath
 }
 
 function Save-PetSettings {
@@ -125,6 +134,7 @@ function Save-PetSettings {
         $payload = [ordered]@{
             Theme      = $script:theme
             ShowBubble = $script:forceBubble
+            Language   = $script:languagePreference
         } | ConvertTo-Json
         [System.IO.File]::WriteAllText($SettingsPath, $payload, (New-Object System.Text.UTF8Encoding($false)))
     }
@@ -240,6 +250,35 @@ function Get-PetThemePalette {
     }
 }
 
+function Get-PetStateLabel {
+    param([string]$State)
+
+    switch ($State) {
+        'Working' { return P 'Working' }
+        'Waiting' { return P 'Waiting' }
+        'JustFinished' { return P 'Waiting' }
+        'Failed' { return P 'Failed' }
+        'Stalled' { return P 'Stalled' }
+        'Stopped' { return P 'Stopped' }
+        default { return P 'Idle' }
+    }
+}
+
+function ConvertTo-LocalizedPetActivity {
+    param($Activity)
+
+    return [pscustomobject]@{
+        Id               = [string]$Activity.Id
+        Workspace        = if ($Activity.PSObject.Properties.Name -contains 'Workspace') { [string]$Activity.Workspace } else { '' }
+        State            = [string]$Activity.State
+        Label            = Get-PetStateLabel -State ([string]$Activity.State)
+        ProjectName      = [string]$Activity.ProjectName
+        ProjectEstimated = if ($Activity.PSObject.Properties.Name -contains 'ProjectEstimated') { [bool]$Activity.ProjectEstimated } else { $false }
+        Operation        = [string]$Activity.Operation
+        ElapsedSeconds   = [double]$Activity.ElapsedSeconds
+    }
+}
+
 function Get-PetActivities {
     $rawActivities = @()
     if ($null -ne $script:petState -and $script:petState.PSObject.Properties.Name -contains 'Activities' -and $null -ne $script:petState.Activities) {
@@ -250,27 +289,28 @@ function Get-PetActivities {
         return @([pscustomobject]@{
             Id             = 'primary'
             State          = [string]$script:petState.State
-            Label          = [string]$script:petState.Label
+            Label          = Get-PetStateLabel -State ([string]$script:petState.State)
             ProjectName    = [string]$script:petState.ProjectName
             Operation      = [string]$script:petState.Operation
             ElapsedSeconds = [double]$script:petState.ElapsedSeconds
         })
     }
 
-    if ($rawActivities.Count -le 4) {
-        return $rawActivities
+    $localizedActivities = @($rawActivities | ForEach-Object { ConvertTo-LocalizedPetActivity -Activity $_ })
+    if ($localizedActivities.Count -le 4) {
+        return $localizedActivities
     }
 
     return @(
-        $rawActivities[0],
-        $rawActivities[1],
-        $rawActivities[2],
+        $localizedActivities[0],
+        $localizedActivities[1],
+        $localizedActivities[2],
         [pscustomobject]@{
             Id             = 'more'
             State          = [string]$script:petState.State
-            Label          = '並列実行中'
-            ProjectName    = "+$($rawActivities.Count - 3)件"
-            Operation      = 'ほかの処理'
+            Label          = P 'MoreParallel'
+            ProjectName    = P 'MoreCount' @($rawActivities.Count - 3)
+            Operation      = P 'OtherTasks'
             ElapsedSeconds = 0
         }
     )
@@ -322,15 +362,17 @@ $script:stateChangedAt = Get-Date
 $script:bubbleUntil = (Get-Date).AddSeconds(20)
 $script:theme = [string]$settings.Theme
 $script:forceBubble = [bool]$settings.ShowBubble
+$script:languagePreference = [string]$settings.Language
+$script:language = Resolve-DevSpaceLanguage -Preference $script:languagePreference
 $script:dragging = $false
 $script:dragOffset = [System.Drawing.Point]::Empty
 $script:dragMoved = $false
 $script:petState = [pscustomobject]@{
     State          = 'Idle'
-    Label          = '待機中'
-    Summary        = 'DevSpaceの状態を確認しています'
+    Label          = P 'Idle'
+    Summary        = P 'PetCheckingSummary'
     ProjectName    = 'DevSpace'
-    Operation      = '確認中'
+    Operation      = P 'PetCheckingOperation'
     ElapsedSeconds = 0
     UpdatedAt      = (Get-Date).ToString('o')
     Activities     = @()
@@ -362,33 +404,66 @@ $symbolFont = New-Object System.Drawing.Font('Segoe UI Symbol', 11, [System.Draw
 
 $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 $toggleBubbleItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$toggleBubbleItem.Text = '吹き出しを常時表示'
 $toggleBubbleItem.Checked = $script:forceBubble
 [void]$contextMenu.Items.Add($toggleBubbleItem)
 
 $themeMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$themeMenuItem.Text = 'テーマ'
 $classicThemeItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$classicThemeItem.Text = 'クラシック（状態色）'
 $neonThemeItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$neonThemeItem.Text = 'ネオン（紫・黄）'
 [void]$themeMenuItem.DropDownItems.Add($classicThemeItem)
 [void]$themeMenuItem.DropDownItems.Add($neonThemeItem)
 [void]$contextMenu.Items.Add($themeMenuItem)
 
+$languageMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$autoLanguageItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$japaneseLanguageItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$englishLanguageItem = New-Object System.Windows.Forms.ToolStripMenuItem
+[void]$languageMenuItem.DropDownItems.Add($autoLanguageItem)
+[void]$languageMenuItem.DropDownItems.Add($japaneseLanguageItem)
+[void]$languageMenuItem.DropDownItems.Add($englishLanguageItem)
+[void]$contextMenu.Items.Add($languageMenuItem)
+
 $resetPositionItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$resetPositionItem.Text = '位置を右下へ戻す'
 [void]$contextMenu.Items.Add($resetPositionItem)
 
 [void]$contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$exitItem.Text = 'ペットを終了'
 [void]$contextMenu.Items.Add($exitItem)
 $form.ContextMenuStrip = $contextMenu
 
 function Update-ThemeMenuChecks {
     $classicThemeItem.Checked = $script:theme -eq 'Classic'
     $neonThemeItem.Checked = $script:theme -eq 'Neon'
+}
+
+function Update-LanguageMenuChecks {
+    $autoLanguageItem.Checked = $script:languagePreference -eq 'Auto'
+    $japaneseLanguageItem.Checked = $script:languagePreference -eq 'Japanese'
+    $englishLanguageItem.Checked = $script:languagePreference -eq 'English'
+}
+
+function Update-PetMenuText {
+    $toggleBubbleItem.Text = P 'ShowBubble'
+    $themeMenuItem.Text = P 'Theme'
+    $classicThemeItem.Text = P 'ThemeClassic'
+    $neonThemeItem.Text = P 'ThemeNeon'
+    $languageMenuItem.Text = P 'Language'
+    $autoLanguageItem.Text = P 'LanguageAuto'
+    $japaneseLanguageItem.Text = P 'LanguageJapanese'
+    $englishLanguageItem.Text = P 'LanguageEnglish'
+    $resetPositionItem.Text = P 'ResetPosition'
+    $exitItem.Text = P 'ExitPet'
+}
+
+function Set-PetLanguagePreference {
+    param([string]$Preference)
+
+    $script:languagePreference = $Preference
+    $script:language = Resolve-DevSpaceLanguage -Preference $Preference
+    Update-LanguageMenuChecks
+    Update-PetMenuText
+    Save-PetSettings
+    $form.Invalidate()
 }
 
 $toggleBubbleItem.Add_Click({
@@ -409,12 +484,17 @@ $neonThemeItem.Add_Click({
     Save-PetSettings
     $form.Invalidate()
 })
+$autoLanguageItem.Add_Click({ Set-PetLanguagePreference -Preference 'Auto' })
+$japaneseLanguageItem.Add_Click({ Set-PetLanguagePreference -Preference 'Japanese' })
+$englishLanguageItem.Add_Click({ Set-PetLanguagePreference -Preference 'English' })
 $resetPositionItem.Add_Click({
     Move-PetToBottomRight
     Save-PetPosition
 })
 $exitItem.Add_Click({ $form.Close() })
 Update-ThemeMenuChecks
+Update-LanguageMenuChecks
+Update-PetMenuText
 
 $form.Add_MouseDown({
     param($sender, $eventArgs)
