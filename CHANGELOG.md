@@ -2,6 +2,25 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.1] - 2026-08-01
+
+### Added
+
+- C# / .NET 8 rewrite in a single Windows process.
+- One self-contained `DevSpaceStatusPet.exe` with no runtime installation required.
+- Native TCP listener and child-process inspection without PowerShell subprocesses.
+- WinForms tray icon, animated pet, and settings window.
+- v0.1 settings and position migration.
+- GUI controls for scale, opacity, completion delay, stall threshold, notifications, and bubble count.
+- Built-in portable mode, self-installation, startup registration, and self-uninstallation.
+- Crash logging and isolated install/uninstall smoke tests.
+
+### Alpha notes
+
+- v0.1.0 remains the stable release.
+- v0.2 uses a separate install directory and mutex during the alpha period.
+- Automatic update checking is not included yet.
+
 ## [0.1.0] - 2026-08-01
 
 ### Added
