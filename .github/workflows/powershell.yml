@@ -1,0 +1,14 @@
+name: PowerShell validation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  parse:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: powershell
+        run: .\tests\ParseScripts.ps1

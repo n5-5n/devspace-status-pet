@@ -1,0 +1,20 @@
+# Windows
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# PowerShell and local logs
+*.log
+*.tmp
+*.bak
+
+# Local build/editor files
+.vs/
+.vscode/
+artifacts/
+TestResults/
+
+# Local DevSpace runtime state (normally stored under %USERPROFILE%\.devspace)
+devspace-status.json
+devspace-pet-position.json
+devspace-pet-settings.json
