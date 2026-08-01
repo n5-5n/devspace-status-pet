@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.2.0
+# DevSpace Status Pet v0.2.1
 
 **[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.2.0はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面を1つの自己完結型EXEへ統合しています。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.2.1はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面、更新機能を1つの自己完結型EXEへ統合しています。
 
 ## 必要環境
 
@@ -43,7 +43,13 @@ DevSpaceStatusPet.exe --install
 - ダーク化された右クリックメニューと設定画面
 - 日本語／English／OS言語自動選択
 - サイズ、透明度、通知時間、吹き出し数の即時変更
+- GitHub Releasesの更新確認とSHA-256検証付き手動更新
+- Stable／Prerelease更新チャンネル
 - Windows自動起動、自己アンインストール、クラッシュログ
+
+## アプリ内更新
+
+タスクトレイまたは設定画面から**更新を確認**を選択します。ZIP、SHA-256、EXEバージョンを検証し、失敗した場合は旧EXEへ復旧します。既定ではStable Releaseのみを確認し、Prereleaseは設定で選択できます。
 
 ## ポータブル実行
 

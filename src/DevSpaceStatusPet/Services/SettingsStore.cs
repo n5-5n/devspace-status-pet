@@ -12,11 +12,20 @@ public sealed class SettingsStore
     };
 
     private readonly object _sync = new();
+    private readonly bool _persist;
     private AppSettings _current;
 
     public SettingsStore()
     {
+        _persist = true;
         _current = LoadCore();
+    }
+
+    internal SettingsStore(AppSettings initialSettings)
+    {
+        _persist = false;
+        _current = initialSettings.Clone();
+        _current.Normalize();
     }
 
     public event EventHandler? Changed;
@@ -39,11 +48,14 @@ public sealed class SettingsStore
 
         lock (_sync)
         {
-            Directory.CreateDirectory(AppPaths.DevSpaceDirectory);
-            var tempPath = $"{AppPaths.SettingsPath}.tmp.{Environment.ProcessId}";
-            var json = JsonSerializer.Serialize(settings, JsonOptions);
-            File.WriteAllText(tempPath, json, new System.Text.UTF8Encoding(false));
-            File.Move(tempPath, AppPaths.SettingsPath, true);
+            if (_persist)
+            {
+                Directory.CreateDirectory(AppPaths.DevSpaceDirectory);
+                var tempPath = $"{AppPaths.SettingsPath}.tmp.{Environment.ProcessId}";
+                var json = JsonSerializer.Serialize(settings, JsonOptions);
+                File.WriteAllText(tempPath, json, new System.Text.UTF8Encoding(false));
+                File.Move(tempPath, AppPaths.SettingsPath, true);
+            }
             _current = settings.Clone();
         }
 
@@ -73,6 +85,18 @@ public sealed class SettingsStore
 
 public sealed class PositionStore
 {
+    private readonly string? _path;
+
+    public PositionStore()
+    {
+        _path = AppPaths.PositionPath;
+    }
+
+    internal PositionStore(string? path)
+    {
+        _path = path;
+    }
+
     private sealed class PositionModel
     {
         public int X { get; set; }
@@ -83,12 +107,12 @@ public sealed class PositionStore
     {
         try
         {
-            if (!File.Exists(AppPaths.PositionPath))
+            if (string.IsNullOrWhiteSpace(_path) || !File.Exists(_path))
             {
                 return null;
             }
 
-            var model = JsonSerializer.Deserialize<PositionModel>(File.ReadAllText(AppPaths.PositionPath));
+            var model = JsonSerializer.Deserialize<PositionModel>(File.ReadAllText(_path));
             return model is null ? null : new Point(model.X, model.Y);
         }
         catch
@@ -101,10 +125,14 @@ public sealed class PositionStore
     {
         try
         {
-            Directory.CreateDirectory(AppPaths.DevSpaceDirectory);
+            if (string.IsNullOrWhiteSpace(_path))
+            {
+                return;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(_path) ?? AppPaths.DevSpaceDirectory);
             var model = new PositionModel { X = location.X, Y = location.Y };
             var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(AppPaths.PositionPath, json, new System.Text.UTF8Encoding(false));
+            File.WriteAllText(_path, json, new System.Text.UTF8Encoding(false));
         }
         catch
         {

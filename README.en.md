@@ -4,7 +4,7 @@
 
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
-> **Stable release: v0.2.0 (C# / .NET 8 single executable)**<br>
+> **Stable release: v0.2.1 (C# / .NET 8 single executable)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -22,13 +22,21 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
 - Windows startup registration
+- Manual GitHub Release updates with SHA-256 verification
+- Stable or optional prerelease update channels
 - Crash logging and runtime diagnostics
 
 ## Preview
 
-| Classic | Neon |
+| Classic with parallel work | Neon with parallel work |
 |---|---|
-| ![Classic theme](docs/classic-preview.svg) | ![Neon theme](docs/neon-preview.svg) |
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+
+| Dark settings window | Safe updater |
+|---|---|
+| ![Dark settings preview](docs/preview-settings.png) | ![Safe updater preview](docs/preview-updater.png) |
+
+![Dark pet context menu](docs/preview-menu.png)
 
 ## Requirements
 
@@ -40,7 +48,7 @@ No separate .NET Runtime installation or PowerShell execution-policy change is r
 
 ## Install
 
-1. Download `DevSpace-Status-Pet-v0.2.0-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
+1. Download `DevSpace-Status-Pet-v0.2.1-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
 2. Extract the ZIP
 3. Run `DevSpaceStatusPet.exe`
 4. Select **Install / update v0.2** from the context menu
@@ -111,6 +119,8 @@ Right-click the pet or tray icon and open **Settings**. Changes are applied imme
 - Stall threshold
 - Notifications
 - Windows startup
+- Check for updates at startup
+- Whether prerelease builds are included
 
 Settings files:
 
@@ -118,6 +128,21 @@ Settings files:
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
+
+## Updates
+
+Choose **Check for updates** from the tray menu or Settings to query the latest GitHub Release.
+
+Before replacing the installed executable, the updater:
+
+1. Downloads the ZIP and matching `.sha256` asset
+2. Verifies the SHA-256 checksum
+3. Rejects unsafe ZIP paths and extracts the package
+4. Confirms that the executable version matches the Release
+5. Backs up and replaces the installed executable
+6. Restores the previous executable if replacement or launch fails
+
+Only stable releases are checked by default. Prereleases can be enabled in Settings. Updates are never installed silently: the release notes are shown first, and replacement starts only after **Update now** is pressed.
 
 Crash log:
 
@@ -147,6 +172,7 @@ The uninstaller does not modify DevSpace itself or any DevSpace project.
 dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
 dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
 .\scripts\Build-DotNetRelease.ps1
+.\src\DevSpaceStatusPet\bin\Release\net8.0-windows10.0.17763.0\win-x64\DevSpaceStatusPet.exe --capture-previews docs
 ```
 
 Pushing a `v0.2.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.

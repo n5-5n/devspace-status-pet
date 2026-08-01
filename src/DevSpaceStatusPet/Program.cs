@@ -15,7 +15,10 @@ internal static class Program
         {
             var launchAfterInstall = !args.Any(argument =>
                 argument.Equals("--no-launch", StringComparison.OrdinalIgnoreCase));
-            SelfInstaller.Install(silent, launchAfterInstall);
+            SelfInstaller.Install(
+                silent,
+                launchAfterInstall,
+                args.Any(argument => argument.Equals("--cleanup-source", StringComparison.OrdinalIgnoreCase)));
             return;
         }
         if (args.Any(argument => argument.Equals("--uninstall", StringComparison.OrdinalIgnoreCase)))
@@ -23,6 +26,20 @@ internal static class Program
             SelfInstaller.Uninstall(
                 args.Any(argument => argument.Equals("--remove-settings", StringComparison.OrdinalIgnoreCase)),
                 silent);
+            return;
+        }
+
+        var captureIndex = Array.FindIndex(args, argument =>
+            argument.Equals("--capture-previews", StringComparison.OrdinalIgnoreCase));
+        if (captureIndex >= 0)
+        {
+            var outputDirectory = captureIndex + 1 < args.Length
+                ? Path.GetFullPath(args[captureIndex + 1])
+                : Path.Combine(Environment.CurrentDirectory, "docs");
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            PreviewCapture.Capture(outputDirectory);
             return;
         }
 

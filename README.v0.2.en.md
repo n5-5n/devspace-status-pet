@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.2.0
+# DevSpace Status Pet v0.2.1
 
 **[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.2.0 is the stable C# / .NET 8 release and combines the tray monitor, pet, and settings window in one self-contained executable.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.2.1 is the stable C# / .NET 8 release and combines the tray monitor, pet, settings window, and updater in one self-contained executable.
 
 ## Requirements
 
@@ -43,7 +43,13 @@ Existing v0.1 and v0.2 alpha settings are reused automatically.
 - Dark context menus and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate size, opacity, timing, and bubble-count changes
+- GitHub Release discovery and manual updates with SHA-256 verification
+- Stable or optional prerelease update channels
 - Windows startup, self-uninstallation, and crash logging
+
+## In-app updates
+
+Choose **Check for updates** from the tray menu or Settings. The updater verifies the ZIP, SHA-256, and executable version, and restores the previous executable if replacement fails. Stable releases are checked by default; prereleases are optional.
 
 ## Portable use
 

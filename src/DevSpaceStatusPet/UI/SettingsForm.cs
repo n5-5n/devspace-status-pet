@@ -15,6 +15,8 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _showBubble = new() { Name = "ShowBubbleInput" };
     private readonly CheckBox _notifications = new() { Name = "NotificationsInput" };
     private readonly CheckBox _startWithWindows = new() { Name = "StartWithWindowsInput" };
+    private readonly CheckBox _checkUpdatesOnStartup = new() { Name = "CheckUpdatesOnStartupInput" };
+    private readonly CheckBox _includePrereleases = new() { Name = "IncludePrereleaseUpdatesInput" };
     private readonly NumericUpDown _scale = new() { Name = "ScaleInput", Minimum = 60, Maximum = 250, Increment = 5 };
     private readonly NumericUpDown _opacity = new() { Name = "OpacityInput", Minimum = 50, Maximum = 100, Increment = 5 };
     private readonly NumericUpDown _quietSeconds = new() { Name = "QuietSecondsInput", Minimum = 10, Maximum = 300 };
@@ -36,22 +38,31 @@ public sealed class SettingsForm : Form
     private readonly Label _notificationsLabel = new() { AutoSize = true };
     private readonly Label _startupLabel = new() { AutoSize = true };
     private readonly Label _versionLabel = new() { AutoSize = true };
+    private readonly Label _latestVersionLabel = new() { AutoSize = true };
+    private readonly Label _updateStatusLabel = new() { AutoSize = true };
     private readonly Label _statusValue = new() { AutoSize = true };
     private readonly Label _portValue = new() { AutoSize = true };
     private readonly Label _configValue = new() { AutoSize = true, MaximumSize = new Size(430, 0) };
     private readonly Label _logValue = new() { AutoSize = true, MaximumSize = new Size(430, 0) };
     private readonly Label _versionValue = new() { AutoSize = true };
+    private readonly Label _latestVersionValue = new() { Name = "LatestVersionValue", AutoSize = true };
+    private readonly Label _updateStatusValue = new() { Name = "UpdateStatusValue", AutoSize = true, MaximumSize = new Size(430, 0) };
     private readonly Button _saveButton = new();
     private readonly Button _closeButton = new();
     private readonly Button _openLogsButton = new();
+    private readonly Button _checkUpdatesButton = new() { Name = "CheckUpdatesButton" };
     private DevSpaceSnapshot _snapshot;
     private bool _reloadingControls;
+    private string _latestVersionText;
+    private string _updateStatusText;
 
     public SettingsForm(SettingsStore settingsStore, Localizer localizer, DevSpaceSnapshot snapshot)
     {
         _settingsStore = settingsStore;
         _localizer = localizer;
         _snapshot = snapshot;
+        _latestVersionText = GetCurrentVersion();
+        _updateStatusText = _localizer["NotChecked"];
 
         AutoScaleMode = AutoScaleMode.Dpi;
         StartPosition = FormStartPosition.CenterScreen;
@@ -59,7 +70,7 @@ public sealed class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = true;
-        ClientSize = new Size(600, 625);
+        ClientSize = new Size(620, 735);
         Font = new Font("Segoe UI", 9f);
         BackColor = DarkUiTheme.WindowBackground;
         ForeColor = DarkUiTheme.Foreground;
@@ -69,7 +80,7 @@ public sealed class SettingsForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 2,
-            RowCount = 18,
+            RowCount = 21,
             AutoSize = false
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
@@ -91,7 +102,11 @@ public sealed class SettingsForm : Form
         AddRow(root, 12, _maxBubblesLabel, _maxBubbles);
         AddRow(root, 13, _notificationsLabel, _notifications);
         AddRow(root, 14, _startupLabel, _startWithWindows);
-        AddRow(root, 15, _versionLabel, _versionValue);
+        AddRow(root, 15, new Label { AutoSize = true }, _checkUpdatesOnStartup);
+        AddRow(root, 16, new Label { AutoSize = true }, _includePrereleases);
+        AddRow(root, 17, _versionLabel, _versionValue);
+        AddRow(root, 18, _latestVersionLabel, _latestVersionValue);
+        AddRow(root, 19, _updateStatusLabel, _updateStatusValue);
 
         var buttons = new FlowLayoutPanel
         {
@@ -100,12 +115,13 @@ public sealed class SettingsForm : Form
             AutoSize = true,
             WrapContents = false
         };
-        buttons.Controls.AddRange([_closeButton, _saveButton, _openLogsButton]);
-        root.Controls.Add(buttons, 0, 17);
+        buttons.Controls.AddRange([_closeButton, _saveButton, _checkUpdatesButton, _openLogsButton]);
+        root.Controls.Add(buttons, 0, 20);
         root.SetColumnSpan(buttons, 2);
         DarkUiTheme.ApplyWindow(this);
 
         _saveButton.Click += (_, _) => SaveSettings(showConfirmation: true);
+        _checkUpdatesButton.Click += (_, _) => UpdateCheckRequested?.Invoke(this, EventArgs.Empty);
         _closeButton.Click += (_, _) => Hide();
         _openLogsButton.Click += (_, _) =>
         {
@@ -123,6 +139,27 @@ public sealed class SettingsForm : Form
         _settingsStore.Changed += (_, _) => Reload();
         Reload();
         WireLivePreview();
+    }
+
+    public event EventHandler? UpdateCheckRequested;
+
+    public void SetUpdateStatus(string latestVersion, string status)
+    {
+        _latestVersionText = string.IsNullOrWhiteSpace(latestVersion)
+            ? GetCurrentVersion()
+            : latestVersion;
+        _updateStatusText = status;
+        RefreshText();
+    }
+
+    public void SetUpdateCheckBusy(bool busy)
+    {
+        _checkUpdatesButton.Enabled = !busy;
+        if (busy)
+        {
+            _updateStatusText = _localizer["CheckingUpdates"];
+            RefreshText();
+        }
     }
 
     public void UpdateSnapshot(DevSpaceSnapshot snapshot)
@@ -161,6 +198,8 @@ public sealed class SettingsForm : Form
             _maxBubbles.Value = settings.MaxBubbles;
             _notifications.Checked = settings.NotificationsEnabled;
             _startWithWindows.Checked = StartupManager.IsEnabled();
+            _checkUpdatesOnStartup.Checked = settings.CheckUpdatesOnStartup;
+            _includePrereleases.Checked = settings.IncludePrereleaseUpdates;
             RefreshText();
         }
         finally
@@ -188,19 +227,26 @@ public sealed class SettingsForm : Form
         _notificationsLabel.Text = _localizer["NotificationsEnabled"];
         _startupLabel.Text = _localizer["StartWithWindows"];
         _versionLabel.Text = _localizer.Get("Version", string.Empty).TrimEnd(' ', ':', '：');
+        _latestVersionLabel.Text = _localizer["LatestVersion"];
+        _updateStatusLabel.Text = _localizer["UpdateStatus"];
 
         _showBubble.Text = string.Empty;
         _notifications.Text = string.Empty;
         _startWithWindows.Text = string.Empty;
+        _checkUpdatesOnStartup.Text = _localizer["CheckUpdatesOnStartup"];
+        _includePrereleases.Text = _localizer["IncludePrereleaseUpdates"];
         _saveButton.Text = _localizer["Save"];
         _closeButton.Text = _localizer["Close"];
         _openLogsButton.Text = _localizer["OpenLogFolder"];
+        _checkUpdatesButton.Text = _localizer["CheckUpdates"];
 
         _statusValue.Text = _localizer.State(_snapshot.State);
         _portValue.Text = _snapshot.Port.ToString();
         _configValue.Text = _snapshot.ConfigPath;
         _logValue.Text = _snapshot.LogPath;
-        _versionValue.Text = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.2.0";
+        _versionValue.Text = GetCurrentVersion();
+        _latestVersionValue.Text = _latestVersionText;
+        _updateStatusValue.Text = _updateStatusText;
     }
 
     private void SaveSettings(bool showConfirmation)
@@ -227,6 +273,8 @@ public sealed class SettingsForm : Form
         settings.StallMinutes = (int)_stallMinutes.Value;
         settings.MaxBubbles = (int)_maxBubbles.Value;
         settings.NotificationsEnabled = _notifications.Checked;
+        settings.CheckUpdatesOnStartup = _checkUpdatesOnStartup.Checked;
+        settings.IncludePrereleaseUpdates = _includePrereleases.Checked;
         _settingsStore.Save(settings);
         StartupManager.SetEnabled(_startWithWindows.Checked);
         RefreshText();
@@ -249,6 +297,8 @@ public sealed class SettingsForm : Form
         _maxBubbles.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
         _notifications.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
         _startWithWindows.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _checkUpdatesOnStartup.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _includePrereleases.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
     }
 
     private void RefreshChoices(AppSettings settings)
@@ -286,6 +336,19 @@ public sealed class SettingsForm : Form
             .OfType<Choice<BubbleColorTheme>>()
             .First(choice => choice.Value == settings.ResolvedBubbleTheme);
         _bubbleThemeBox.EndUpdate();
+    }
+
+    private static string GetCurrentVersion()
+    {
+        var informational = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            var metadata = informational.IndexOf('+');
+            return metadata >= 0 ? informational[..metadata] : informational;
+        }
+        return Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
     }
 
     private static void AddRow(TableLayoutPanel panel, int row, Control label, Control value)

@@ -2,6 +2,27 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.1] - 2026-08-01
+
+### Added
+
+- Stable and optional prerelease update discovery through GitHub Releases.
+- Startup and manual update checks from the tray menu and settings window.
+- Dark release-notes and update-progress window.
+- ZIP download progress, SHA-256 verification, safe extraction, and executable-version validation.
+- Backup, rollback, and restored-version relaunch when replacement fails.
+- One update notification per released version.
+- Reproducible in-app preview capture for the pet, menus, settings, and updater.
+
+### Changed
+
+- Refreshed the Japanese and English GitHub previews to match the current v0.2 UI.
+- Added update-channel and startup-check settings while preserving existing v0.1/v0.2 configuration files.
+
+### Tested
+
+- Added stable/prerelease selection, checksum tampering, ZIP traversal, verified extraction, and live GitHub release tests.
+
 ## [0.2.0] - 2026-08-01
 
 ### Stable release

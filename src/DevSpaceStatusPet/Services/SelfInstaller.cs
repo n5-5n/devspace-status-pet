@@ -23,27 +23,64 @@ public static class SelfInstaller
     public static bool IsRunningFromInstallDirectory =>
         PathsEqual(AppPaths.ExecutablePath, InstalledExecutablePath);
 
-    public static void Install(bool silent = false, bool launchAfterInstall = true)
+    public static void Install(
+        bool silent = false,
+        bool launchAfterInstall = true,
+        bool cleanupSource = false)
     {
         StopOtherInstances();
         Directory.CreateDirectory(InstallDirectory);
-        if (!PathsEqual(AppPaths.ExecutablePath, InstalledExecutablePath))
-        {
-            var temp = Path.Combine(InstallDirectory, $"DevSpaceStatusPet.{Environment.ProcessId}.tmp.exe");
-            File.Copy(AppPaths.ExecutablePath, temp, true);
-            File.Move(temp, InstalledExecutablePath, true);
-        }
+        var sourcePath = AppPaths.ExecutablePath;
+        var backupPath = $"{InstalledExecutablePath}.backup";
+        var replacementPath = Path.Combine(
+            InstallDirectory,
+            $"DevSpaceStatusPet.{Environment.ProcessId}.tmp.exe");
 
-        CreateShortcut(DesktopShortcutPath, InstalledExecutablePath, "--settings");
-        StartupManager.SetEnabled(true, InstalledExecutablePath);
-
-        if (launchAfterInstall)
+        try
         {
-            Process.Start(new ProcessStartInfo(InstalledExecutablePath, "--settings")
+            if (!PathsEqual(sourcePath, InstalledExecutablePath))
             {
-                UseShellExecute = true,
-                WorkingDirectory = InstallDirectory
-            });
+                TryDelete(backupPath);
+                if (File.Exists(InstalledExecutablePath))
+                {
+                    File.Copy(InstalledExecutablePath, backupPath, true);
+                }
+
+                File.Copy(sourcePath, replacementPath, true);
+                File.Move(replacementPath, InstalledExecutablePath, true);
+            }
+
+            CreateShortcut(DesktopShortcutPath, InstalledExecutablePath, "--settings");
+            StartupManager.SetEnabled(true, InstalledExecutablePath);
+
+            if (launchAfterInstall)
+            {
+                _ = Process.Start(new ProcessStartInfo(InstalledExecutablePath, "--settings")
+                {
+                    UseShellExecute = true,
+                    WorkingDirectory = InstallDirectory
+                }) ?? throw new InvalidOperationException("Could not start the installed application.");
+            }
+
+            TryDelete(backupPath);
+            if (cleanupSource && !PathsEqual(sourcePath, InstalledExecutablePath))
+            {
+                ScheduleSourceCleanup(sourcePath);
+            }
+        }
+        catch
+        {
+            TryDelete(replacementPath);
+            if (File.Exists(backupPath))
+            {
+                File.Copy(backupPath, InstalledExecutablePath, true);
+                TryDelete(backupPath);
+                if (launchAfterInstall)
+                {
+                    TryLaunchInstalledApplication();
+                }
+            }
+            throw;
         }
 
         if (!silent)
@@ -115,6 +152,40 @@ public static class SelfInstaller
                 }
             }
         }
+    }
+
+    private static void TryLaunchInstalledApplication()
+    {
+        try
+        {
+            _ = Process.Start(new ProcessStartInfo(InstalledExecutablePath, "--settings")
+            {
+                UseShellExecute = true,
+                WorkingDirectory = InstallDirectory
+            });
+        }
+        catch
+        {
+            // The original executable has been restored even if relaunching it is unavailable.
+        }
+    }
+
+    private static void ScheduleSourceCleanup(string sourcePath)
+    {
+        var sourceDirectory = Path.GetDirectoryName(sourcePath);
+        if (string.IsNullOrWhiteSpace(sourceDirectory) ||
+            !sourceDirectory.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var command = $"ping 127.0.0.1 -n 4 >nul & rmdir /s /q \"{sourceDirectory}\"";
+        Process.Start(new ProcessStartInfo("cmd.exe", $"/c {command}")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        });
     }
 
     private static void CreateShortcut(string shortcutPath, string targetPath, string arguments)
