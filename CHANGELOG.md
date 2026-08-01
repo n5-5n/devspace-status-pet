@@ -2,6 +2,15 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.3] - 2026-08-01
+
+### Added
+
+- Independent Light and Dark themes for speech bubbles.
+- Bubble theme switching from both the pet context menu and settings window.
+- Immediate bubble theme preview and persistence without pressing Save.
+- Japanese and English labels for the new bubble appearance setting.
+
 ## [0.2.0-alpha.2] - 2026-08-01
 
 ### Fixed
