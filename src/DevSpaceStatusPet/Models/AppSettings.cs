@@ -18,7 +18,7 @@ public sealed class AppSettings
     public string Theme { get; set; } = nameof(PetTheme.Classic);
     public bool ShowBubble { get; set; } = true;
     public string Language { get; set; } = nameof(UiLanguagePreference.Auto);
-    public double Scale { get; set; } = 1.0;
+    public double Scale { get; set; } = 1.15;
     public double Opacity { get; set; } = 1.0;
     public int CompletionQuietSeconds { get; set; } = 45;
     public int StallMinutes { get; set; } = 30;
@@ -54,7 +54,7 @@ public sealed class AppSettings
         Language = Enum.TryParse<UiLanguagePreference>(Language, true, out var language)
             ? language.ToString()
             : nameof(UiLanguagePreference.Auto);
-        Scale = Math.Clamp(Scale, 0.6, 1.8);
+        Scale = Math.Clamp(Scale, 0.6, 2.5);
         Opacity = Math.Clamp(Opacity, 0.5, 1.0);
         CompletionQuietSeconds = Math.Clamp(CompletionQuietSeconds, 10, 300);
         StallMinutes = Math.Clamp(StallMinutes, 1, 240);

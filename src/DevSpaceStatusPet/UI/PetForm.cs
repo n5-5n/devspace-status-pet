@@ -7,6 +7,16 @@ namespace DevSpaceStatusPet.UI;
 
 public sealed class PetForm : Form
 {
+    private const int LogicalWidth = 304;
+    private const int BubbleTop = 8;
+    private const int BubbleWidth = 286;
+    private const int BubbleHeight = 76;
+    private const int BubbleGap = 8;
+    private const int BubbleStride = BubbleHeight + BubbleGap;
+    private const int BubbleTailHeight = 16;
+    private const int RobotLogicalHeight = 224;
+    private const float RobotDesignScale = 1.48f;
+
     private readonly SettingsStore _settingsStore;
     private readonly PositionStore _positionStore;
     private readonly Localizer _localizer;
@@ -35,6 +45,7 @@ public sealed class PetForm : Form
         _localizer = localizer;
 
         Text = "DevSpace Status Pet";
+        AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -127,11 +138,7 @@ public sealed class PetForm : Form
     private void ResizeForContent(AppSettings settings)
     {
         var count = VisibleActivities(settings).Count;
-        var logicalWidth = 214;
-        var logicalHeight = 246 + Math.Max(0, count - 1) * 58;
-        var target = new Size(
-            (int)Math.Ceiling(logicalWidth * settings.Scale),
-            (int)Math.Ceiling(logicalHeight * settings.Scale));
+        var target = CalculateClientSize(settings, count);
         if (ClientSize == target)
         {
             return;
@@ -141,11 +148,34 @@ public sealed class PetForm : Form
         ClientSize = target;
         Top = bottom - Height;
         ClampToScreen();
+        Invalidate();
+    }
+
+    internal static Size CalculateClientSize(AppSettings settings, int activityCount)
+    {
+        var logicalHeight = GetBubbleAreaHeight(settings.ShowBubble, activityCount) + RobotLogicalHeight;
+        return new Size(
+            (int)Math.Ceiling(LogicalWidth * settings.Scale),
+            (int)Math.Ceiling(logicalHeight * settings.Scale));
+    }
+
+    internal static int GetBubbleAreaHeight(bool showBubble, int count)
+    {
+        if (!showBubble)
+        {
+            return 0;
+        }
+
+        var visibleCount = Math.Max(1, count);
+        return BubbleTop + (visibleCount * BubbleHeight) + ((visibleCount - 1) * BubbleGap) + BubbleTailHeight;
     }
 
     private IReadOnlyList<DevSpaceActivity> VisibleActivities(AppSettings settings)
     {
-        var activities = _snapshot.Activities.ToList();
+        var activities = _snapshot.Activities
+            .GroupBy(activity => activity.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
         if (activities.Count == 0)
         {
             activities.Add(new DevSpaceActivity(
@@ -186,30 +216,32 @@ public sealed class PetForm : Form
         graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         graphics.ScaleTransform((float)settings.Scale, (float)settings.Scale);
 
-        var bubbleHeight = settings.ShowBubble ? Math.Max(1, activities.Count) * 58 + 14 : 0;
+        var bubbleAreaHeight = GetBubbleAreaHeight(settings.ShowBubble, activities.Count);
         if (settings.ShowBubble)
         {
             DrawBubbles(graphics, activities, settings);
         }
 
-        DrawRobot(graphics, bubbleHeight, settings);
+        DrawRobot(graphics, bubbleAreaHeight, settings);
     }
 
     private void DrawBubbles(Graphics graphics, IReadOnlyList<DevSpaceActivity> activities, AppSettings settings)
     {
-        using var titleFont = new Font("Segoe UI Semibold", 9f, FontStyle.Bold);
-        using var textFont = new Font("Segoe UI", 8.2f);
-        using var smallFont = new Font("Segoe UI", 7.3f);
+        using var titleFont = new Font("Segoe UI Semibold", 17f, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var textFont = new Font("Segoe UI", 14f, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var smallFont = new Font("Segoe UI", 12f, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var titleFormat = CreateSingleLineFormat(StringAlignment.Near);
+        using var textFormat = CreateSingleLineFormat(StringAlignment.Near);
 
         for (var index = 0; index < activities.Count; index++)
         {
             var activity = activities[index];
-            var y = 4 + index * 58;
+            var y = BubbleTop + index * BubbleStride;
             var palette = Palette.For(settings.ResolvedTheme, activity.State);
-            var rectangle = new RectangleF(5, y, 176, 52);
-            using var path = RoundedRectangle(rectangle, 10f);
+            var rectangle = new RectangleF(9, y, BubbleWidth, BubbleHeight);
+            using var path = RoundedRectangle(rectangle, 13f);
             using var background = new SolidBrush(palette.BubbleBackground);
-            using var glow = new Pen(Color.FromArgb(palette.GlowAlpha, palette.Outline), settings.ResolvedTheme == PetTheme.Neon ? 8f : 5f);
+            using var glow = new Pen(Color.FromArgb(palette.GlowAlpha, palette.Outline), settings.ResolvedTheme == PetTheme.Neon ? 9f : 5f);
             using var border = new Pen(palette.Outline, 2f);
             using var titleBrush = new SolidBrush(palette.Text);
             using var mutedBrush = new SolidBrush(palette.Muted);
@@ -218,30 +250,58 @@ public sealed class PetForm : Form
             graphics.DrawPath(glow, path);
             graphics.FillPath(background, path);
             graphics.DrawPath(border, path);
-            graphics.DrawString(Trim(activity.ProjectName, 25), titleFont, titleBrush, 13, y + 6);
-            graphics.DrawString(Trim(_localizer.Operation(activity.Operation, activity.Detail), 30), textFont, mutedBrush, 13, y + 24);
-            graphics.FillEllipse(stateBrush, 13, y + 42, 7, 7);
+
+            graphics.DrawString(
+                activity.ProjectName,
+                titleFont,
+                titleBrush,
+                new RectangleF(18, y + 7, BubbleWidth - 28, 22),
+                titleFormat);
+            graphics.DrawString(
+                _localizer.Operation(activity.Operation, activity.Detail),
+                textFont,
+                mutedBrush,
+                new RectangleF(18, y + 31, BubbleWidth - 28, 19),
+                textFormat);
+            graphics.FillEllipse(stateBrush, 18, y + 57, 8, 8);
             graphics.DrawString(
                 $"{_localizer.State(activity.State)}  {FormatDuration(activity.Elapsed)}",
                 smallFont,
                 mutedBrush,
-                24,
-                y + 38);
+                new RectangleF(31, y + 52, BubbleWidth - 41, 18),
+                textFormat);
         }
 
-        var tailY = 4 + (activities.Count - 1) * 58 + 50;
+        var tailY = BubbleTop + ((activities.Count - 1) * BubbleStride) + BubbleHeight - 1;
         var tailPalette = Palette.For(settings.ResolvedTheme, activities[^1].State);
         using var tailBrush = new SolidBrush(tailPalette.BubbleBackground);
-        graphics.FillPolygon(tailBrush,
-        [
-            new PointF(120, tailY),
-            new PointF(138, tailY),
-            new PointF(129, tailY + 13)
-        ]);
+        using var tailBorder = new Pen(tailPalette.Outline, 2f);
+        var tail = new[]
+        {
+            new PointF(135, tailY),
+            new PointF(157, tailY),
+            new PointF(146, tailY + BubbleTailHeight)
+        };
+        graphics.FillPolygon(tailBrush, tail);
+        graphics.DrawLines(tailBorder, tail);
     }
 
-    private void DrawRobot(Graphics graphics, int bubbleHeight, AppSettings settings)
+    private static StringFormat CreateSingleLineFormat(StringAlignment alignment) => new()
     {
+        Alignment = alignment,
+        LineAlignment = StringAlignment.Near,
+        Trimming = StringTrimming.EllipsisCharacter,
+        FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.LineLimit
+    };
+
+    private void DrawRobot(Graphics graphics, int bubbleAreaHeight, AppSettings settings)
+    {
+        var transform = graphics.Save();
+        var designWidth = 180f;
+        var horizontalOffset = (LogicalWidth - (designWidth * RobotDesignScale)) / 2f;
+        graphics.TranslateTransform(horizontalOffset, bubbleAreaHeight + 31f);
+        graphics.ScaleTransform(RobotDesignScale, RobotDesignScale);
+
         var state = _snapshot.State;
         var palette = Palette.For(settings.ResolvedTheme, state);
         var phase = _frame / 5d;
@@ -255,7 +315,7 @@ public sealed class PetForm : Form
         };
         var legSwing = state == ActivityState.Working ? Math.Sin(phase * 2.6) * 7 : 0;
         var armSwing = state == ActivityState.Working ? Math.Sin(phase * 2.6 + 1.2) * 9 : Math.Sin(phase * 0.45) * 3;
-        var baseY = bubbleHeight + 15 + (float)bob;
+        var baseY = (float)bob;
 
         using var body = new SolidBrush(state == ActivityState.Stopped ? Color.FromArgb(72, 75, 84) : Color.FromArgb(30, 34, 44));
         using var panel = new SolidBrush(Color.FromArgb(13, 17, 24));
@@ -343,10 +403,12 @@ public sealed class PetForm : Form
 
         if (state == ActivityState.Stalled)
         {
-            using var font = new Font("Segoe UI", 12f, FontStyle.Bold);
+            using var font = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Pixel);
             using var brush = new SolidBrush(palette.StateColor);
             graphics.DrawString("Z", font, brush, 137, baseY - 15);
         }
+
+        graphics.Restore(transform);
     }
 
     private void UpdateMenu(AppSettings settings)

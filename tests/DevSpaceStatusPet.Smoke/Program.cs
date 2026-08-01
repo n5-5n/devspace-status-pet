@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DevSpaceStatusPet.Models;
 using DevSpaceStatusPet.Services;
+using DevSpaceStatusPet.UI;
 
 var failures = new List<string>();
 
@@ -30,7 +31,7 @@ migrated.Normalize();
 Check(migrated.ResolvedTheme == PetTheme.Neon, "v0.1 theme migration");
 Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
-Check(migrated.Scale == 1.0 && migrated.MaxBubbles == 4, "new settings defaults");
+Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
 
 var current = new AppSettings { Language = "English" };
 var localizer = new Localizer(() => current);
@@ -79,6 +80,38 @@ finally
 {
     Directory.Delete(tempRoot, true);
 }
+
+var parallelNow = DateTimeOffset.Now;
+var activeWorkspace = new DevSpaceActivity(
+    "process:1",
+    "SharedProject",
+    ActivityState.Working,
+    OperationKind.Command,
+    null,
+    parallelNow.AddSeconds(-5),
+    TimeSpan.FromSeconds(5),
+    false,
+    true,
+    "workspace-active");
+var sameProjectTools = new[]
+{
+    new ToolEvent("workspace-active", "bash", "SharedProject", OperationKind.Command, null, parallelNow.AddSeconds(-2), true, 10),
+    new ToolEvent("workspace-other", "read", "SharedProject", OperationKind.Read, "README.md", parallelNow.AddSeconds(-3), true, 5)
+};
+var parallelActivities = DevSpaceMonitor.BuildRecentActivities(
+    sameProjectTools,
+    [activeWorkspace],
+    120,
+    parallelNow);
+Check(parallelActivities.Count == 1, "parallel workspace preservation");
+Check(parallelActivities.SingleOrDefault()?.WorkspaceId == "workspace-other", "same-project workspace identity");
+
+var defaultLayout = PetForm.CalculateClientSize(new AppSettings(), 1);
+var largeLayout = PetForm.CalculateClientSize(new AppSettings { Scale = 2.0 }, 1);
+var parallelLayout = PetForm.CalculateClientSize(new AppSettings(), 3);
+Check(defaultLayout.Width >= 340 && defaultLayout.Height >= 360, "larger default pet layout");
+Check(largeLayout.Width > defaultLayout.Width && largeLayout.Height > defaultLayout.Height, "scale changes layout size");
+Check(parallelLayout.Height > defaultLayout.Height + 150, "parallel bubbles expand window");
 
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");

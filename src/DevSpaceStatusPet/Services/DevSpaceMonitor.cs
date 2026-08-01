@@ -56,7 +56,11 @@ public sealed class DevSpaceMonitor
 
             var groups = _processInspector.GetDescendantGroups(serverPid.Value);
             var active = BuildActiveActivities(groups, log.RecentTools, configuration.AllowedRoots, now);
-            var recent = BuildRecentActivities(log.RecentTools, active, settings.CompletionQuietSeconds, now);
+            var recent = BuildRecentActivities(
+                log.RecentTools,
+                active,
+                Math.Max(settings.CompletionQuietSeconds, 120),
+                now);
             var activities = active.Concat(recent)
                 .OrderByDescending(activity => activity.State == ActivityState.Working)
                 .ThenByDescending(activity => activity.StartedAt)
@@ -122,21 +126,29 @@ public sealed class DevSpaceMonitor
                 detail,
                 startedAt,
                 now - startedAt,
-                project.Equals("Unknown", StringComparison.OrdinalIgnoreCase)));
+                project.Equals("Unknown", StringComparison.OrdinalIgnoreCase),
+                true,
+                fallback?.WorkspaceId));
         }
 
         return result;
     }
 
-    private static IReadOnlyList<DevSpaceActivity> BuildRecentActivities(
+    internal static IReadOnlyList<DevSpaceActivity> BuildRecentActivities(
         IReadOnlyList<ToolEvent> recentTools,
         IReadOnlyList<DevSpaceActivity> active,
         int windowSeconds,
         DateTimeOffset now)
     {
-        var activeProjectCounts = active
+        var activeWorkspaceIds = active
+            .Select(item => item.WorkspaceId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unmatchedActiveProjectCounts = active
+            .Where(item => string.IsNullOrWhiteSpace(item.WorkspaceId))
             .GroupBy(item => item.ProjectName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+        var seenWorkspaceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<DevSpaceActivity>();
 
         foreach (var tool in recentTools.OrderByDescending(item => item.Timestamp))
@@ -147,9 +159,20 @@ public sealed class DevSpaceMonitor
                 continue;
             }
 
-            if (activeProjectCounts.TryGetValue(tool.ProjectName, out var count) && count > 0)
+            if (!string.IsNullOrWhiteSpace(tool.WorkspaceId))
             {
-                activeProjectCounts[tool.ProjectName] = count - 1;
+                if (!seenWorkspaceIds.Add(tool.WorkspaceId))
+                {
+                    continue;
+                }
+                if (activeWorkspaceIds.Contains(tool.WorkspaceId))
+                {
+                    continue;
+                }
+            }
+            else if (unmatchedActiveProjectCounts.TryGetValue(tool.ProjectName, out var count) && count > 0)
+            {
+                unmatchedActiveProjectCounts[tool.ProjectName] = count - 1;
                 continue;
             }
 
@@ -162,7 +185,8 @@ public sealed class DevSpaceMonitor
                 tool.Timestamp,
                 age,
                 false,
-                tool.Success));
+                tool.Success,
+                tool.WorkspaceId));
         }
 
         return result;

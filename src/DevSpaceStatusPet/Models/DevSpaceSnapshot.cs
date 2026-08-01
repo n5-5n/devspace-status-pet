@@ -37,7 +37,8 @@ public sealed record DevSpaceActivity(
     DateTimeOffset StartedAt,
     TimeSpan Elapsed,
     bool ProjectEstimated = false,
-    bool Success = true);
+    bool Success = true,
+    string? WorkspaceId = null);
 
 public sealed record DevSpaceSnapshot(
     ActivityState State,

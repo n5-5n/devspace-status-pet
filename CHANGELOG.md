@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.2] - 2026-08-01
+
+### Fixed
+
+- Rebuilt the pet layout for high-DPI displays so bubble text no longer overlaps.
+- Increased the default pet and bubble size while keeping user-adjustable scaling.
+- Applied scale, opacity, theme, language, bubble count, and other settings immediately.
+- Preserved separate bubbles for parallel workspaces even when they use the same project.
+- Kept recent workspace bubbles visible longer so parallel sessions are easier to follow.
+
 ## [0.2.0-alpha.1] - 2026-08-01
 
 ### Added

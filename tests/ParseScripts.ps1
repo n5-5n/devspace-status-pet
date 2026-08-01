@@ -14,7 +14,8 @@ $files = @(
     'scripts\Build-Release.ps1',
     'scripts\Build-DotNetRelease.ps1',
     'tests\InstallSmoke.ps1',
-    'tests\DotNetInstallSmoke.ps1'
+    'tests\DotNetInstallSmoke.ps1',
+    'tests\UiLiveSettingsSmoke.ps1'
 )
 
 $failed = $false
