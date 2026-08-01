@@ -5,7 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.2.1 (C# / .NET 8 single executable)**<br>
-> **Development build: v0.3.0-alpha.2 (Clean Monitor Card and single-border rendering)**<br>
+> **Development build: v0.3.0-alpha.3 (matching live and preview rendering)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -20,6 +20,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Classic and Neon robot themes
 - Independent Light and Dark speech-bubble themes
 - Immediate switching between Standard Speech Bubble, Neon Monitor Card, and Clean Monitor Card designs
+- Per-pixel alpha transparency so the live window matches the GitHub previews
 - Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count

@@ -2,6 +2,19 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.3.0-alpha.3] - 2026-08-01
+
+### Fixed
+
+- Replaced magenta color-key transparency with per-pixel alpha rendering.
+- Removed purple and magenta edge contamination that appeared only in the live desktop window.
+- Unified the live pet and GitHub preview rendering paths.
+- Switched transparent text rendering from ClearType to alpha-safe antialiasing.
+
+### Tested
+
+- Added transparent-layer pixel checks for visible content, antialiased edges, and zero magenta fringe pixels.
+
 ## [0.3.0-alpha.2] - 2026-08-01
 
 ### Added

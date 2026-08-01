@@ -508,6 +508,35 @@ using (var renderPet = new PetForm(renderStore, new PositionStore(null), renderL
     }
     Check(sampledColors.Count >= 20, "clean monitor-card visual rendering");
 
+    using var transparentLayer = renderPet.RenderTransparentPreview();
+    var visiblePixels = 0;
+    var antialiasedPixels = 0;
+    var magentaFringePixels = 0;
+    for (var y = 0; y < transparentLayer.Height; y++)
+    {
+        for (var x = 0; x < transparentLayer.Width; x++)
+        {
+            var pixel = transparentLayer.GetPixel(x, y);
+            if (pixel.A == 0)
+            {
+                continue;
+            }
+
+            visiblePixels++;
+            if (pixel.A < byte.MaxValue)
+            {
+                antialiasedPixels++;
+            }
+            if (pixel.R > 170 && pixel.B > 170 && pixel.G < 110)
+            {
+                magentaFringePixels++;
+            }
+        }
+    }
+    Check(visiblePixels > 1000, "per-pixel alpha visible surface");
+    Check(antialiasedPixels > 100, "per-pixel alpha antialiased edges");
+    Check(magentaFringePixels == 0, "no transparency-key magenta fringe");
+
     renderSettings.BubbleStyle = "MonitorCardNeon";
     renderStore.Save(renderSettings);
     using var renderedNeonCard = renderPet.RenderPreview(Color.FromArgb(18, 20, 26));
