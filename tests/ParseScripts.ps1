@@ -13,6 +13,8 @@ $files = @(
     'Uninstall-DevSpaceStatus.ps1',
     'scripts\Build-Release.ps1',
     'scripts\Build-DotNetRelease.ps1',
+    'scripts\Rebuild-HistoricalDotNetRelease.ps1',
+    'scripts\Rebuild-AllNormalizedHistory.ps1',
     'tests\InstallSmoke.ps1',
     'tests\DotNetInstallSmoke.ps1',
     'tests\UiLiveSettingsSmoke.ps1'

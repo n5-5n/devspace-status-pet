@@ -4,8 +4,8 @@
 
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
-> **Stable release: v0.2.1 (C# / .NET 8 single executable)**<br>
-> **Development build: v0.3.0-alpha.3 (matching live and preview rendering)**<br>
+> **Stable release: v0.1.2 (C# / .NET 8 single executable)**<br>
+> **Development build: v0.1.3-alpha.3 (matching live and preview rendering)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -55,7 +55,7 @@ No separate .NET Runtime installation or PowerShell execution-policy change is r
 
 ## Install
 
-1. Download `DevSpace-Status-Pet-v0.2.1-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
+1. Download `DevSpace-Status-Pet-v0.1.2-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
 2. Extract the ZIP
 3. Run `DevSpaceStatusPet.exe`
 4. Select **Install / update** from the context menu
@@ -72,7 +72,7 @@ Install location:
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-Existing v0.1 and v0.2 settings are reused automatically. v0.3 development builds use the same settings files.
+Existing PowerShell and .NET settings are reused automatically. Prerelease builds use the same settings files.
 
 ## Portable use
 
@@ -185,9 +185,17 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 
 Pushing a `v0.x.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.
 
-## Legacy v0.1 release
+## Versioning policy
 
-The PowerShell v0.1.0 release remains available on GitHub Releases. v0.2 reads the existing v0.1 theme, language, bubble, and position settings automatically.
+Each independent update increments the patch number by one, for example `v0.1.1 → v0.1.2 → v0.1.3`.
+
+While the same update is being tested, the base version stays unchanged and only the prerelease suffix advances, for example `alpha.1 → alpha.2 → alpha.3`. The stable release removes the alpha suffix from that same base version.
+
+Historical releases were normalized retroactively: `v0.2.0 series → v0.1.1 series`, `v0.2.1 → v0.1.2`, and `v0.3.0-alpha series → v0.1.3-alpha series`. See [`VERSIONING.md`](VERSIONING.md) for the complete mapping and policy.
+
+## Legacy PowerShell release
+
+The PowerShell v0.1.0 release remains available on GitHub Releases. The current .NET release reads its existing theme, language, bubble, and position settings automatically.
 
 ## License
 

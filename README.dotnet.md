@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.2.1
+# DevSpace Status Pet v0.1.2
 
-**[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
+**[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.2.1はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面、更新機能を1つの自己完結型EXEへ統合しています。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.2はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面、更新機能を1つの自己完結型EXEへ統合しています。
 
 ## 必要環境
 
@@ -15,7 +15,7 @@ DevSpaceの作業状況を、タスクトレイとデスクトップペットで
 
 1. ZIPを展開
 2. `DevSpaceStatusPet.exe`を実行
-3. 右クリックメニューから**v0.2をインストール／更新**を選択
+3. 右クリックメニューから**インストール／更新**を選択
 
 または次を実行します。
 
@@ -29,7 +29,7 @@ DevSpaceStatusPet.exe --install
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-既存のv0.1およびv0.2 alpha設定は自動的に引き継がれます。
+PowerShell版と.NET版の既存設定は自動的に引き継がれます。
 
 ## 主な機能
 
@@ -88,6 +88,6 @@ DevSpace本体やプロジェクトは変更しません。
 %LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
 ```
 
-## 旧v0.1版
+## 旧PowerShell版
 
 PowerShell製v0.1.0はロールバック用としてGitHub Releasesに残しています。
