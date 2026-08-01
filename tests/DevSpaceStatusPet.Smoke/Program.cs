@@ -91,6 +91,90 @@ finally
     Directory.Delete(tempRoot, true);
 }
 
+var largeLogRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-LargeLog-{Environment.ProcessId}");
+Directory.CreateDirectory(largeLogRoot);
+try
+{
+    var logPath = Path.Combine(largeLogRoot, "serve.log");
+    var timestamp = DateTimeOffset.Now;
+    using (var writer = new StreamWriter(logPath, false, new System.Text.UnicodeEncoding(false, true)))
+    {
+        writer.WriteLine(JsonSerializer.Serialize(new
+        {
+            @event = "tool_call",
+            tool = "open_workspace",
+            workspaceId = "ws-alpha",
+            path = @"D:\Dev Work\Alpha Project",
+            ts = timestamp.AddMinutes(-20).ToString("O"),
+            success = true
+        }));
+        writer.WriteLine(JsonSerializer.Serialize(new
+        {
+            @event = "tool_call",
+            tool = "open_workspace",
+            workspaceId = "ws-beta",
+            path = @"D:\Dev Work\Beta Project",
+            ts = timestamp.AddMinutes(-20).ToString("O"),
+            success = true
+        }));
+        var filler = new string('x', 1024);
+        for (var index = 0; index < 4300; index++)
+        {
+            writer.WriteLine(filler);
+        }
+        writer.WriteLine(JsonSerializer.Serialize(new
+        {
+            @event = "tool_call",
+            tool = "bash",
+            workspaceId = "ws-alpha",
+            workingDirectory = string.Empty,
+            ts = timestamp.AddSeconds(-2).ToString("O"),
+            success = true
+        }));
+        writer.WriteLine(JsonSerializer.Serialize(new
+        {
+            @event = "tool_call",
+            tool = "bash",
+            workspaceId = "ws-beta",
+            workingDirectory = string.Empty,
+            ts = timestamp.AddSeconds(-3).ToString("O"),
+            success = true
+        }));
+    }
+
+    var snapshot = new DevSpaceLogReader().Read(logPath, [@"D:\Dev Work"]);
+    Check(snapshot.RecentTools.Count == 2, "UTF-16 large-log parallel workspace recovery");
+    Check(snapshot.RecentTools.Any(tool => tool.ProjectName == "Alpha Project"), "old Alpha workspace identity recovery");
+    Check(snapshot.RecentTools.Any(tool => tool.ProjectName == "Beta Project"), "old Beta workspace identity recovery");
+    Check(snapshot.RecentTools.All(tool => !tool.ProjectName.Equals("Unknown", StringComparison.OrdinalIgnoreCase)), "no Unknown project labels");
+}
+finally
+{
+    Directory.Delete(largeLogRoot, true);
+}
+
+var fallbackRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-Fallback-{Environment.ProcessId}");
+Directory.CreateDirectory(fallbackRoot);
+try
+{
+    var logPath = Path.Combine(fallbackRoot, "serve.log");
+    File.WriteAllText(logPath, JsonSerializer.Serialize(new
+    {
+        @event = "tool_call",
+        tool = "bash",
+        workspaceId = "ws-1234567890",
+        workingDirectory = string.Empty,
+        ts = DateTimeOffset.Now.ToString("O"),
+        success = true
+    }));
+    var snapshot = new DevSpaceLogReader().Read(logPath, Array.Empty<string>());
+    Check(snapshot.LastTool?.ProjectName == "Workspace ws-12345", "workspace label fallback");
+}
+finally
+{
+    Directory.Delete(fallbackRoot, true);
+}
+
 var parallelNow = DateTimeOffset.Now;
 var activeWorkspace = new DevSpaceActivity(
     "process:1",
@@ -111,7 +195,7 @@ var sameProjectTools = new[]
 var parallelActivities = DevSpaceMonitor.BuildRecentActivities(
     sameProjectTools,
     [activeWorkspace],
-    120,
+    300,
     parallelNow);
 Check(parallelActivities.Count == 1, "parallel workspace preservation");
 Check(parallelActivities.SingleOrDefault()?.WorkspaceId == "workspace-other", "same-project workspace identity");
@@ -126,14 +210,20 @@ Check(parallelLayout.Height > defaultLayout.Height + 150, "parallel bubbles expa
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");
 
+var liveConfigurationLoader = new DevSpaceConfigurationLoader();
+var liveConfiguration = liveConfigurationLoader.Load();
+var liveLogFile = new FileInfo(liveConfiguration.LogPath);
+Console.WriteLine($"[INFO] live log path={liveConfiguration.LogPath}, exists={liveLogFile.Exists}, bytes={(liveLogFile.Exists ? liveLogFile.Length : 0)}, roots={string.Join(" | ", liveConfiguration.AllowedRoots)}");
+var liveLog = new DevSpaceLogReader().Read(liveConfiguration.LogPath, liveConfiguration.AllowedRoots);
+Console.WriteLine($"[INFO] live log workspaces={liveLog.RecentTools.Count}: {string.Join(" | ", liveLog.RecentTools.Select(tool => $"{tool.WorkspaceId}={tool.ProjectName}@{tool.Timestamp:HH:mm:ss}"))}");
 var monitor = new DevSpaceMonitor(
-    new DevSpaceConfigurationLoader(),
+    liveConfigurationLoader,
     inspector,
     new DevSpaceLogReader(),
     () => new AppSettings());
 var liveSnapshot = monitor.Capture();
 Check(liveSnapshot.Port is > 0 and <= 65535, "live configuration capture");
-Console.WriteLine($"[INFO] live state={liveSnapshot.State}, activities={liveSnapshot.Activities.Count}, port={liveSnapshot.Port}");
+Console.WriteLine($"[INFO] live state={liveSnapshot.State}, activities={liveSnapshot.Activities.Count}, port={liveSnapshot.Port}: {string.Join(" | ", liveSnapshot.Activities.Select(activity => $"{activity.Id}={activity.ProjectName}/{activity.State}/{activity.WorkspaceId}"))}");
 
 if (failures.Count > 0)
 {

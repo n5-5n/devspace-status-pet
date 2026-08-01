@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.4] - 2026-08-01
+
+### Fixed
+
+- Correctly read UTF-16 LE `serve.log` files after they grow beyond the 4 MB tail window.
+- Restored project names from historical `open_workspace` entries instead of showing `Unknown` after an app restart.
+- Preserved separate bubbles for concurrently active workspaces in large logs.
+- Extended parallel-workspace retention from two minutes to five minutes.
+- Replaced unresolved project names with a stable workspace label instead of `Unknown`.
+
 ## [0.2.0-alpha.3] - 2026-08-01
 
 ### Added
