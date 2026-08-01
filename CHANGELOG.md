@@ -2,6 +2,14 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.5] - 2026-08-01
+
+### Fixed
+
+- Removed completed `Waiting for next step` bubbles when the configured completion quiet period expires.
+- Reused the completion-notification delay as the waiting-bubble lifetime so both finish at the same time.
+- Kept bubbles for genuinely active child processes while expiring only inactive workspace entries.
+
 ## [0.2.0-alpha.4] - 2026-08-01
 
 ### Fixed

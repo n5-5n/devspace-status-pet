@@ -195,10 +195,23 @@ var sameProjectTools = new[]
 var parallelActivities = DevSpaceMonitor.BuildRecentActivities(
     sameProjectTools,
     [activeWorkspace],
-    300,
+    45,
     parallelNow);
 Check(parallelActivities.Count == 1, "parallel workspace preservation");
 Check(parallelActivities.SingleOrDefault()?.WorkspaceId == "workspace-other", "same-project workspace identity");
+
+var waitingBeforeQuietThreshold = DevSpaceMonitor.BuildRecentActivities(
+    [new ToolEvent("workspace-waiting", "read", "FinishedProject", OperationKind.Read, "README.md", parallelNow.AddSeconds(-44), true, 5)],
+    Array.Empty<DevSpaceActivity>(),
+    45,
+    parallelNow);
+var waitingAtQuietThreshold = DevSpaceMonitor.BuildRecentActivities(
+    [new ToolEvent("workspace-waiting", "read", "FinishedProject", OperationKind.Read, "README.md", parallelNow.AddSeconds(-45), true, 5)],
+    Array.Empty<DevSpaceActivity>(),
+    45,
+    parallelNow);
+Check(waitingBeforeQuietThreshold.Count == 1, "waiting bubble remains before quiet threshold");
+Check(waitingAtQuietThreshold.Count == 0, "waiting bubble expires at quiet threshold");
 
 var defaultLayout = PetForm.CalculateClientSize(new AppSettings(), 1);
 var largeLayout = PetForm.CalculateClientSize(new AppSettings { Scale = 2.0 }, 1);

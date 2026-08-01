@@ -59,7 +59,7 @@ public sealed class DevSpaceMonitor
             var recent = BuildRecentActivities(
                 log.RecentTools,
                 active,
-                Math.Max(settings.CompletionQuietSeconds, 300),
+                settings.CompletionQuietSeconds,
                 now);
             var activities = active.Concat(recent)
                 .OrderByDescending(activity => activity.State == ActivityState.Working)
@@ -176,7 +176,7 @@ public sealed class DevSpaceMonitor
         foreach (var tool in recentTools.OrderByDescending(item => item.Timestamp))
         {
             var age = now - tool.Timestamp;
-            if (age < TimeSpan.Zero || age > TimeSpan.FromSeconds(windowSeconds))
+            if (age < TimeSpan.Zero || age >= TimeSpan.FromSeconds(windowSeconds))
             {
                 continue;
             }

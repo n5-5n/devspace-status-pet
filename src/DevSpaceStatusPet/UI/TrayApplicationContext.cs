@@ -33,6 +33,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private DateTimeOffset _workSessionStartedAt;
     private DateTimeOffset _lastSessionActivityAt;
     private DateTimeOffset? _lastSeenToolAt;
+    private string _lastSessionProjectName = "DevSpace";
     private bool _stallNotificationShown;
     private ActivityState _previousState = ActivityState.Idle;
 
@@ -199,6 +200,12 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         if (snapshot.State is ActivityState.Working or ActivityState.Stalled || newTool)
         {
+            var primary = snapshot.Activities.FirstOrDefault();
+            if (primary is not null)
+            {
+                _lastSessionProjectName = primary.ProjectName;
+            }
+
             if (!_workSessionActive)
             {
                 _workSessionActive = true;
@@ -211,9 +218,8 @@ public sealed class TrayApplicationContext : ApplicationContext
             var duration = _lastSessionActivityAt - _workSessionStartedAt;
             if (duration >= TimeSpan.FromSeconds(10))
             {
-                var primary = snapshot.Activities.FirstOrDefault();
                 var title = snapshot.LastToolSucceeded ? _localizer["WorkDoneTitle"] : _localizer["WorkFailedTitle"];
-                var text = $"{primary?.ProjectName ?? "DevSpace"}{Environment.NewLine}" +
+                var text = $"{_lastSessionProjectName}{Environment.NewLine}" +
                            $"{_localizer.Get("WorkTime", FormatDuration(duration))}";
                 ShowBalloon(title, text, snapshot.LastToolSucceeded ? ToolTipIcon.Info : ToolTipIcon.Error);
             }
