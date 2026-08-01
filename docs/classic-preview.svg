@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
   <rect width="800" height="420" rx="24" fill="#10141c"/>
   <rect x="36" y="38" width="380" height="92" rx="18" fill="#f8fafc" stroke="#4ba0ff" stroke-width="4"/>
-  <text x="62" y="70" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">VideoShrink</text>
+  <text x="62" y="70" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">Aurora Desktop</text>
   <text x="62" y="98" font-family="Segoe UI, sans-serif" font-size="18" fill="#4c586b">dotnet test</text>
   <circle cx="64" cy="116" r="6" fill="#4be182"/>
   <text x="80" y="122" font-family="Segoe UI, sans-serif" font-size="16" fill="#4c586b">Working 03:21</text>
   <rect x="36" y="148" width="380" height="92" rx="18" fill="#f8fafc" stroke="#ffcb3a" stroke-width="4"/>
-  <text x="62" y="180" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">personal-hub</text>
+  <text x="62" y="180" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#19202b">Orbit API</text>
   <text x="62" y="208" font-family="Segoe UI, sans-serif" font-size="18" fill="#4c586b">Edit file</text>
   <circle cx="64" cy="226" r="6" fill="#ffcb3a"/>
   <text x="80" y="232" font-family="Segoe UI, sans-serif" font-size="16" fill="#4c586b">Waiting 00:08</text>

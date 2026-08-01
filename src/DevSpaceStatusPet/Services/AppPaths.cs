@@ -30,6 +30,12 @@ public static class AppPaths
     public static string CrashLogPath { get; } =
         Path.Combine(LogsDirectory, "crash.log");
 
+    public static string RuntimeLogPath { get; } =
+        Path.Combine(LogsDirectory, "runtime.log");
+
+    public static string PreviousRuntimeLogPath { get; } =
+        Path.Combine(LogsDirectory, "runtime.previous.log");
+
     public static string ExecutablePath { get; } =
         Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "DevSpaceStatusPet.exe");
 }

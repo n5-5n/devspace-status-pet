@@ -5,6 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.1.3 (C# / .NET 8 single executable)**<br>
+> **Development build: v0.1.4-alpha.1 (display self-recovery and diagnostics)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -24,6 +25,9 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
 - Windows startup registration
+- Recovers the pet after monitor resume, display changes, or off-screen movement
+- **Show / recover pet** command in the tray menu
+- Rotating runtime diagnostics log
 - Manual GitHub Release updates with SHA-256 verification
 - Stable or optional prerelease update channels
 - Crash logging and runtime diagnostics
@@ -150,6 +154,14 @@ Before replacing the installed executable, the updater:
 6. Restores the previous executable if replacement or launch fails
 
 Only stable releases are checked by default. Prereleases can be enabled in Settings. Updates are never installed silently: the release notes are shown first, and replacement starts only after **Update now** is pressed.
+
+Runtime diagnostics log:
+
+```text
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\runtime.log
+```
+
+It records startup, shutdown, display and power-resume events, self-recovery, and rendering failures. Logs rotate to `runtime.previous.log` after 1 MB.
 
 Crash log:
 

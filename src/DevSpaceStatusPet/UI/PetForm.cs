@@ -45,6 +45,9 @@ public sealed class PetForm : Form
     private bool _dragging;
     private bool _dragMoved;
     private Point _dragOffset;
+    private int _renderFailureCount;
+    private int _watchdogFrameCount;
+    private bool _recoveringVisibility;
 
     public PetForm(SettingsStore settingsStore, PositionStore positionStore, Localizer localizer)
     {
@@ -130,7 +133,13 @@ public sealed class PetForm : Form
         _animationTimer.Tick += (_, _) =>
         {
             _frame++;
-            RenderLayeredWindow();
+            RenderLayeredWindow("animation");
+            _watchdogFrameCount++;
+            if (_watchdogFrameCount >= 25)
+            {
+                _watchdogFrameCount = 0;
+                VerifyVisibility("animation-watchdog");
+            }
         };
 
         _settingsStore.Changed += (_, _) => ApplySettings();
@@ -287,7 +296,37 @@ public sealed class PetForm : Form
         return bitmap;
     }
 
-    private void RenderLayeredWindow()
+    private void RenderLayeredWindow(string source = "render")
+    {
+        try
+        {
+            RenderLayeredWindowCore();
+            if (_renderFailureCount > 0)
+            {
+                RuntimeLogger.Write(
+                    "render-recovered",
+                    $"source={source}; failures={_renderFailureCount}; bounds={Bounds}");
+            }
+            _renderFailureCount = 0;
+        }
+        catch (Exception exception)
+        {
+            _renderFailureCount++;
+            if (_renderFailureCount == 1 || _renderFailureCount % 25 == 0)
+            {
+                RuntimeLogger.Write(
+                    exception,
+                    $"render-failed source={source}; count={_renderFailureCount}; bounds={Bounds}");
+            }
+
+            if (_renderFailureCount == 1 && IsHandleCreated && !IsDisposed)
+            {
+                BeginInvoke(new Action(() => RecoverVisibility($"render-failure:{source}", recreateHandle: true)));
+            }
+        }
+    }
+
+    private void RenderLayeredWindowCore()
     {
         if (!IsHandleCreated || IsDisposed || ClientSize.Width <= 0 || ClientSize.Height <= 0)
         {
@@ -300,6 +339,83 @@ public sealed class PetForm : Form
             byte.MinValue,
             byte.MaxValue);
         LayeredWindowRenderer.Apply(this, bitmap, opacity);
+    }
+
+    public void VerifyVisibility(string reason)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => VerifyVisibility(reason)));
+            return;
+        }
+
+        var intersectsWorkingArea = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds));
+        var cloaked = IsHandleCreated && LayeredWindowRenderer.IsCloaked(Handle);
+        if (!Visible || WindowState != FormWindowState.Normal || !TopMost || !intersectsWorkingArea || cloaked)
+        {
+            RecoverVisibility(
+                cloaked ? $"{reason}:cloaked" : reason,
+                recreateHandle: cloaked);
+        }
+    }
+
+    public void RecoverVisibility(string reason, bool recreateHandle = false)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => RecoverVisibility(reason, recreateHandle)));
+            return;
+        }
+        if (_recoveringVisibility)
+        {
+            return;
+        }
+
+        _recoveringVisibility = true;
+        var before = Bounds;
+        try
+        {
+            WindowState = FormWindowState.Normal;
+            if (!Visible)
+            {
+                Show();
+            }
+            if (recreateHandle && IsHandleCreated)
+            {
+                RecreateHandle();
+            }
+            if (!Visible)
+            {
+                Show();
+            }
+
+            ClampToScreen();
+            TopMost = false;
+            TopMost = true;
+            BringToFront();
+            RenderLayeredWindowCore();
+            _renderFailureCount = 0;
+            RuntimeLogger.Write(
+                "pet-window-recovered",
+                $"reason={reason}; before={before}; after={Bounds}; visible={Visible}; topmost={TopMost}");
+        }
+        catch (Exception exception)
+        {
+            RuntimeLogger.Write(exception, $"pet-window-recovery-failed reason={reason}");
+            CrashLogger.Write(exception, "PetForm.RecoverVisibility");
+        }
+        finally
+        {
+            _recoveringVisibility = false;
+        }
     }
 
     private void RenderContent(Graphics graphics)
@@ -802,16 +918,34 @@ public sealed class PetForm : Form
 
     private void ClampToScreen()
     {
-        var screen = Screen.AllScreens.FirstOrDefault(candidate => candidate.WorkingArea.IntersectsWith(Bounds))
-                     ?? Screen.PrimaryScreen;
-        if (screen is null)
+        var workingAreas = Screen.AllScreens
+            .OrderByDescending(screen => screen.Primary)
+            .Select(screen => screen.WorkingArea)
+            .ToArray();
+        if (workingAreas.Length == 0)
         {
             return;
         }
-        var area = screen.WorkingArea;
-        Location = new Point(
-            Math.Clamp(Left, area.Left, Math.Max(area.Left, area.Right - Width)),
-            Math.Clamp(Top, area.Top, Math.Max(area.Top, area.Bottom - Height)));
+
+        Location = ClampPosition(Bounds, workingAreas);
+    }
+
+    internal static Point ClampPosition(Rectangle bounds, IReadOnlyList<Rectangle> workingAreas)
+    {
+        if (workingAreas.Count == 0)
+        {
+            return bounds.Location;
+        }
+
+        var area = workingAreas.FirstOrDefault(candidate => candidate.IntersectsWith(bounds));
+        if (area == Rectangle.Empty)
+        {
+            area = workingAreas[0];
+        }
+
+        return new Point(
+            Math.Clamp(bounds.Left, area.Left, Math.Max(area.Left, area.Right - bounds.Width)),
+            Math.Clamp(bounds.Top, area.Top, Math.Max(area.Top, area.Bottom - bounds.Height)));
     }
 
     private static GraphicsPath RoundedRectangle(RectangleF rectangle, float radius)

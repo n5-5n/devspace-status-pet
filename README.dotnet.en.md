@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.3
+# DevSpace Status Pet v0.1.4-alpha.1
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.3 is the stable C# / .NET 8 release and combines Monitor Cards, per-pixel alpha rendering, settings, and safe updates in one self-contained executable.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.4-alpha.1 is a prerelease that adds display self-recovery after monitor resume, display changes, or off-screen movement, plus rotating runtime diagnostics.
 
 ## Requirements
 
@@ -45,7 +45,9 @@ Existing PowerShell and .NET settings are reused automatically.
 - Immediate size, opacity, timing, and bubble-count changes
 - GitHub Release discovery and manual updates with SHA-256 verification
 - Stable or optional prerelease update channels
-- Windows startup, self-uninstallation, and crash logging
+- Display self-recovery after monitor resume, display changes, or off-screen movement
+- Tray command to show and recover the pet
+- Windows startup, self-uninstallation, runtime diagnostics, and crash logging
 
 ## In-app updates
 
@@ -80,6 +82,12 @@ The uninstaller does not modify DevSpace itself or any project.
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
+```
+
+Runtime diagnostics log:
+
+```text
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\runtime.log
 ```
 
 Crash log:
