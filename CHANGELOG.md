@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.3] - 2026-08-01
+
+### Stable release
+
+- Promoted the tested Monitor Card, Clean Card, and per-pixel alpha-rendering work from the v0.1.3 alpha series.
+- Replaced all public preview project names and operation details with fictional sample data.
+- Regenerated the Classic, Neon, Monitor Card, context-menu, settings, and updater previews from the sanitized sample snapshot.
+- Added a regression test that locks future public previews to an approved fictional sample set.
+- Preserved existing settings, startup registration, and the installed application path.
+
 ## [0.1.3-alpha.3] - 2026-08-01
 
 ### Fixed

@@ -4,8 +4,7 @@
 
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
-> **Stable release: v0.1.2 (C# / .NET 8 single executable)**<br>
-> **Development build: v0.1.3-alpha.3 (matching live and preview rendering)**<br>
+> **Stable release: v0.1.3 (C# / .NET 8 single executable)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -55,7 +54,7 @@ No separate .NET Runtime installation or PowerShell execution-policy change is r
 
 ## Install
 
-1. Download `DevSpace-Status-Pet-v0.1.2-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
+1. Download `DevSpace-Status-Pet-v0.1.3-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
 2. Extract the ZIP
 3. Run `DevSpaceStatusPet.exe`
 4. Select **Install / update** from the context menu
@@ -102,11 +101,11 @@ Yellow does not immediately mean the full work session is complete. By default, 
 Activities are separated by workspace ID, so two chats working in the same project still receive separate bubbles.
 
 ```text
-VideoShrink
+Aurora Desktop
 Running tests
 Working  03:21
 
-VideoShrink
+Aurora Desktop
 Editing file
 Waiting for next step  00:08
 ```

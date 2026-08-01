@@ -93,7 +93,7 @@ internal static class PreviewCapture
             Location = new Point(-10000, -10000),
             ShowInTaskbar = false
         };
-        form.SetUpdateStatus("0.1.2", localizer["UpToDate"]);
+        form.SetUpdateStatus("0.1.3", localizer["UpToDate"]);
         using var client = RenderControl(form);
         using var output = RenderWindowFrame(
             client,
@@ -107,13 +107,13 @@ internal static class PreviewCapture
         var settings = CreatePreviewSettings(PetTheme.Classic);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
-        using var updateService = new UpdateService("0.1.1");
+        using var updateService = new UpdateService("0.1.2");
         var release = new UpdateRelease(
-            "0.1.2",
-            "v0.1.2",
-            "DevSpace Status Pet v0.1.2",
-            "https://github.com/n5-5n/devspace-status-pet/releases/tag/v0.1.2",
-            "## v0.1.2\r\n\r\n- GitHubから最新版を確認\r\n- ZIPとSHA-256を検証して安全に更新\r\n- Stable／Prereleaseを選択可能\r\n- GitHubプレビューを刷新",
+            "0.1.3",
+            "v0.1.3",
+            "DevSpace Status Pet v0.1.3",
+            "https://github.com/n5-5n/devspace-status-pet/releases/tag/v0.1.3",
+            "## v0.1.3\r\n\r\n- モニターカードを正式追加\r\n- 実機とプレビューの描画を統一\r\n- 公開用サンプルを架空プロジェクトへ変更\r\n- ZIPとSHA-256を検証して安全に更新",
             false,
             DateTimeOffset.Now,
             "https://example.invalid/update.zip",
@@ -211,14 +211,14 @@ internal static class PreviewCapture
         IncludePrereleaseUpdates = false
     };
 
-    private static DevSpaceSnapshot CreateSampleSnapshot()
+    internal static DevSpaceSnapshot CreateSampleSnapshot()
     {
         var now = DateTimeOffset.Now;
         var activities = new[]
         {
             new DevSpaceActivity(
-                "preview:videoshrink",
-                "VideoShrink",
+                "preview:aurora",
+                "Aurora Desktop",
                 ActivityState.Working,
                 OperationKind.Dotnet,
                 "dotnet test",
@@ -226,21 +226,21 @@ internal static class PreviewCapture
                 TimeSpan.FromMinutes(4).Add(TimeSpan.FromSeconds(32)),
                 false,
                 true,
-                "ws_preview_video"),
+                "ws_preview_aurora"),
             new DevSpaceActivity(
-                "preview:status-pet",
-                "devspace-status",
+                "preview:orbit",
+                "Orbit API",
                 ActivityState.Waiting,
                 OperationKind.Edit,
-                "UpdateService.cs",
+                "StatusPanel.cs",
                 now.AddSeconds(-18),
                 TimeSpan.FromSeconds(18),
                 false,
                 true,
-                "ws_preview_pet"),
+                "ws_preview_orbit"),
             new DevSpaceActivity(
-                "preview:hub",
-                "personal-hub",
+                "preview:nimbus",
+                "Nimbus Docs",
                 ActivityState.Working,
                 OperationKind.Git,
                 "git push",
@@ -248,7 +248,7 @@ internal static class PreviewCapture
                 TimeSpan.FromMinutes(1).Add(TimeSpan.FromSeconds(9)),
                 false,
                 true,
-                "ws_preview_hub")
+                "ws_preview_nimbus")
         };
         return new DevSpaceSnapshot(
             ActivityState.Working,

@@ -452,12 +452,22 @@ var cleanCardBorder = PetForm.ResolveCleanCardBorder(BubbleColorTheme.Dark);
 Check(cleanCardBackground != cleanCardBorder, "clean monitor-card single border contrast");
 Check(cleanCardBorder.GetBrightness() > cleanCardBackground.GetBrightness(), "clean monitor-card border remains subtle and visible");
 
+var previewSample = PreviewCapture.CreateSampleSnapshot();
+var expectedPreviewProjects = new[] { "Aurora Desktop", "Orbit API", "Nimbus Docs" };
+Check(
+    previewSample.Activities.Select(activity => activity.ProjectName).SequenceEqual(expectedPreviewProjects),
+    "public preview uses fictional sample projects");
+var expectedPreviewDetails = new[] { "dotnet test", "StatusPanel.cs", "git push" };
+Check(
+    previewSample.Activities.Select(activity => activity.Detail).SequenceEqual(expectedPreviewDetails),
+    "public preview uses only approved generic operation details");
+
 var renderNow = DateTimeOffset.Now;
 var renderActivities = new[]
 {
     new DevSpaceActivity(
         "render-working",
-        "VideoShrink",
+        "Aurora Desktop",
         ActivityState.Working,
         OperationKind.Dotnet,
         "dotnet test",
@@ -466,10 +476,10 @@ var renderActivities = new[]
         WorkspaceId: "ws-render-working"),
     new DevSpaceActivity(
         "render-waiting",
-        "devspace-status",
+        "Orbit API",
         ActivityState.Waiting,
         OperationKind.Edit,
-        "PetForm.cs",
+        "StatusPanel.cs",
         renderNow.AddSeconds(-18),
         TimeSpan.FromSeconds(18),
         WorkspaceId: "ws-render-waiting")
