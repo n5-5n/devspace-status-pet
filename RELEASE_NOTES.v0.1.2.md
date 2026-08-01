@@ -1,6 +1,6 @@
-# DevSpace Status Pet v0.2.1
+# DevSpace Status Pet v0.1.2
 
-v0.2.1 adds safe in-app update checking and refreshes the GitHub previews with the current dark UI and parallel-workspace layout.
+v0.1.2 adds safe in-app update checking and refreshes the GitHub previews with the current dark UI and parallel-workspace layout.
 
 ## Added
 
@@ -29,18 +29,18 @@ v0.2.1 adds safe in-app update checking and refreshes the GitHub previews with t
 - Tampered-checksum rejection test.
 - Unsafe ZIP-entry rejection test.
 - Verified-package extraction and executable-version tests.
-- Live GitHub test against the published v0.2.0 ZIP and SHA-256 assets.
+- Live GitHub test against the published v0.1.1 ZIP and SHA-256 assets.
 - Existing log, parallel-workspace, high-DPI, settings, installation, and dark-UI regression tests.
 
 ## Install or update
 
-Existing v0.2 users can open the tray menu or settings window and choose **Check for updates**.
+Existing .NET users can open the tray menu or settings window and choose **Check for updates**.
 
 For a manual installation:
 
-1. Download `DevSpace-Status-Pet-v0.2.1-win-x64.zip`.
+1. Download `DevSpace-Status-Pet-v0.1.2-win-x64.zip`.
 2. Extract the ZIP.
-3. Run `DevSpaceStatusPet.exe` and select **Install / update v0.2**, or run:
+3. Run `DevSpaceStatusPet.exe` and select **Install / update**, or run:
 
 ```text
 DevSpaceStatusPet.exe --install

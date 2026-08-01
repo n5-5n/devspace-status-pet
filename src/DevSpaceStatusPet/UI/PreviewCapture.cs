@@ -93,7 +93,7 @@ internal static class PreviewCapture
             Location = new Point(-10000, -10000),
             ShowInTaskbar = false
         };
-        form.SetUpdateStatus("0.2.1", localizer["UpToDate"]);
+        form.SetUpdateStatus("0.1.2", localizer["UpToDate"]);
         using var client = RenderControl(form);
         using var output = RenderWindowFrame(
             client,
@@ -107,13 +107,13 @@ internal static class PreviewCapture
         var settings = CreatePreviewSettings(PetTheme.Classic);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
-        using var updateService = new UpdateService("0.2.0");
+        using var updateService = new UpdateService("0.1.1");
         var release = new UpdateRelease(
-            "0.2.1",
-            "v0.2.1",
-            "DevSpace Status Pet v0.2.1",
-            "https://github.com/n5-5n/devspace-status-pet/releases/tag/v0.2.1",
-            "## v0.2.1\r\n\r\n- GitHubから最新版を確認\r\n- ZIPとSHA-256を検証して安全に更新\r\n- Stable／Prereleaseを選択可能\r\n- GitHubプレビューを刷新",
+            "0.1.2",
+            "v0.1.2",
+            "DevSpace Status Pet v0.1.2",
+            "https://github.com/n5-5n/devspace-status-pet/releases/tag/v0.1.2",
+            "## v0.1.2\r\n\r\n- GitHubから最新版を確認\r\n- ZIPとSHA-256を検証して安全に更新\r\n- Stable／Prereleaseを選択可能\r\n- GitHubプレビューを刷新",
             false,
             DateTimeOffset.Now,
             "https://example.invalid/update.zip",

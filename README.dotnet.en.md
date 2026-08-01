@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.2.1
+# DevSpace Status Pet v0.1.2
 
-**[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
+**[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.2.1 is the stable C# / .NET 8 release and combines the tray monitor, pet, settings window, and updater in one self-contained executable.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.2 is the stable C# / .NET 8 release and combines the tray monitor, pet, settings window, and updater in one self-contained executable.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ No separate .NET Runtime installation is required.
 
 1. Extract the ZIP
 2. Run `DevSpaceStatusPet.exe`
-3. Select **Install / update v0.2** from the context menu
+3. Select **Install / update** from the context menu
 
 Or run:
 
@@ -29,7 +29,7 @@ Install location:
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-Existing v0.1 and v0.2 alpha settings are reused automatically.
+Existing PowerShell and .NET settings are reused automatically.
 
 ## Main features
 
@@ -88,6 +88,6 @@ Crash log:
 %LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
 ```
 
-## Legacy v0.1 release
+## Legacy PowerShell release
 
 The PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.

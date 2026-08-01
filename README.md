@@ -4,8 +4,8 @@
 
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
-> **安定版：v0.2.1（C# / .NET 8・単一EXE）**<br>
-> **開発版：v0.3.0-alpha.3（実機とプレビューの描画統一）**<br>
+> **安定版：v0.1.2（C# / .NET 8・単一EXE）**<br>
+> **開発版：v0.1.3-alpha.3（実機とプレビューの描画統一）**<br>
 > 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
 ## 主な機能
@@ -55,7 +55,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## インストール
 
-1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.2.1-win-x64.zip`をダウンロード
+1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.1.2-win-x64.zip`をダウンロード
 2. ZIPを展開
 3. `DevSpaceStatusPet.exe`を実行
 4. 右クリックメニューから**インストール／更新**を選択
@@ -72,7 +72,7 @@ DevSpaceStatusPet.exe --install
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-既存のv0.1／v0.2設定は自動的に引き継がれます。v0.3開発版でも同じ設定ファイルを使用します。
+PowerShell版と.NET版の既存設定は自動的に引き継がれます。Prereleaseも同じ設定ファイルを使用します。
 
 ## ポータブル実行
 
@@ -185,9 +185,17 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 
 タグ`v0.x.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。
 
-## 旧v0.1版
+## バージョン運用
 
-PowerShell製v0.1.0はGitHub Releasesに残しています。v0.2はv0.1のテーマ、言語、吹き出し、位置設定をそのまま読み取ります。
+独立した更新を公開するたびにパッチ番号を1つ上げます。例：`v0.1.1 → v0.1.2 → v0.1.3`。
+
+同じ更新内容を試験している間は基準番号を変えず、`alpha.1 → alpha.2 → alpha.3`のようにPrerelease番号だけを上げます。正式公開時は同じ基準番号からalpha表記を外します。
+
+過去の公開番号は、`v0.2.0系 → v0.1.1系`、`v0.2.1 → v0.1.2`、`v0.3.0-alpha系 → v0.1.3-alpha系`へ遡及して正規化しました。対応表と詳細は[`VERSIONING.md`](VERSIONING.md)にあります。
+
+## 旧PowerShell版
+
+PowerShell製v0.1.0はGitHub Releasesに残しています。現在の.NET版は、そのテーマ、言語、吹き出し、位置設定をそのまま読み取ります。
 
 ## License
 

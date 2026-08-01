@@ -2,7 +2,7 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
-## [0.3.0-alpha.3] - 2026-08-01
+## [0.1.3-alpha.3] - 2026-08-01
 
 ### Fixed
 
@@ -11,11 +11,16 @@ All notable changes to DevSpace Status Pet are documented here.
 - Unified the live pet and GitHub preview rendering paths.
 - Switched transparent text rendering from ClearType to alpha-safe antialiasing.
 
+### Changed
+
+- Normalized historical release numbering to patch-by-patch updates: `v0.1.1`, `v0.1.2`, and `v0.1.3` families.
+- Added a documented policy that increments the patch number for each independent update while keeping alpha iterations on the same base version.
+
 ### Tested
 
 - Added transparent-layer pixel checks for visible content, antialiased edges, and zero magenta fringe pixels.
 
-## [0.3.0-alpha.2] - 2026-08-01
+## [0.1.3-alpha.2] - 2026-08-01
 
 ### Added
 
@@ -33,7 +38,7 @@ All notable changes to DevSpace Status Pet are documented here.
 
 - Added migration, clean-border contrast, layout parity, rendering, and live three-style switching tests.
 
-## [0.3.0-alpha.1] - 2026-08-01
+## [0.1.3-alpha.1] - 2026-08-01
 
 ### Added
 
@@ -45,10 +50,10 @@ All notable changes to DevSpace Status Pet are documented here.
 ### Changed
 
 - Kept the existing speech bubble as the migration-safe default for current users.
-- Made installer, uninstaller, and desktop-shortcut labels version-neutral for v0.3 and later.
+- Made installer, uninstaller, and desktop-shortcut labels version-neutral for future versions.
 - Extended the release workflow to accept future v0.x tags.
 
-## [0.2.1] - 2026-08-01
+## [0.1.2] - 2026-08-01
 
 ### Added
 
@@ -62,14 +67,14 @@ All notable changes to DevSpace Status Pet are documented here.
 
 ### Changed
 
-- Refreshed the Japanese and English GitHub previews to match the current v0.2 UI.
-- Added update-channel and startup-check settings while preserving existing v0.1/v0.2 configuration files.
+- Refreshed the Japanese and English GitHub previews to match the current .NET UI.
+- Added update-channel and startup-check settings while preserving existing configuration files.
 
 ### Tested
 
 - Added stable/prerelease selection, checksum tampering, ZIP traversal, verified extraction, and live GitHub release tests.
 
-## [0.2.0] - 2026-08-01
+## [0.1.1] - 2026-08-01
 
 ### Stable release
 
@@ -77,9 +82,9 @@ All notable changes to DevSpace Status Pet are documented here.
 - Consolidated the tray monitor, desktop pet, settings window, notifications, and diagnostics into one process.
 - Included all fixes from alpha.1 through alpha.6: high-DPI layout, parallel workspace bubbles, log encoding detection, workspace identity recovery, waiting-bubble expiration, live settings, independent robot/bubble themes, and the dark application UI.
 - Updated the GitHub release workflow to publish stable tags without the prerelease flag while retaining prerelease support for suffixed versions.
-- Updated Japanese and English documentation so v0.2 is the primary release and v0.1 is the legacy PowerShell fallback.
+- Updated Japanese and English documentation so the .NET build is the primary release and PowerShell v0.1.0 is the legacy fallback.
 
-## [0.2.0-alpha.6] - 2026-08-01
+## [0.1.1-alpha.6] - 2026-08-01
 
 ### Added
 
@@ -88,7 +93,7 @@ All notable changes to DevSpace Status Pet are documented here.
 - Immersive dark title-bar support on compatible Windows 10 and Windows 11 builds.
 - Automated contrast and control-theme smoke tests for the new application UI palette.
 
-## [0.2.0-alpha.5] - 2026-08-01
+## [0.1.1-alpha.5] - 2026-08-01
 
 ### Fixed
 
@@ -96,7 +101,7 @@ All notable changes to DevSpace Status Pet are documented here.
 - Reused the completion-notification delay as the waiting-bubble lifetime so both finish at the same time.
 - Kept bubbles for genuinely active child processes while expiring only inactive workspace entries.
 
-## [0.2.0-alpha.4] - 2026-08-01
+## [0.1.1-alpha.4] - 2026-08-01
 
 ### Fixed
 
@@ -106,7 +111,7 @@ All notable changes to DevSpace Status Pet are documented here.
 - Extended parallel-workspace retention from two minutes to five minutes.
 - Replaced unresolved project names with a stable workspace label instead of `Unknown`.
 
-## [0.2.0-alpha.3] - 2026-08-01
+## [0.1.1-alpha.3] - 2026-08-01
 
 ### Added
 
@@ -115,7 +120,7 @@ All notable changes to DevSpace Status Pet are documented here.
 - Immediate bubble theme preview and persistence without pressing Save.
 - Japanese and English labels for the new bubble appearance setting.
 
-## [0.2.0-alpha.2] - 2026-08-01
+## [0.1.1-alpha.2] - 2026-08-01
 
 ### Fixed
 
@@ -125,7 +130,7 @@ All notable changes to DevSpace Status Pet are documented here.
 - Preserved separate bubbles for parallel workspaces even when they use the same project.
 - Kept recent workspace bubbles visible longer so parallel sessions are easier to follow.
 
-## [0.2.0-alpha.1] - 2026-08-01
+## [0.1.1-alpha.1] - 2026-08-01
 
 ### Added
 
@@ -141,7 +146,7 @@ All notable changes to DevSpace Status Pet are documented here.
 ### Alpha notes
 
 - v0.1.0 remains the stable release.
-- v0.2 uses a separate install directory and mutex during the alpha period.
+- v0.1.1 uses a separate .NET install directory and mutex during the alpha period.
 - Automatic update checking is not included yet.
 
 ## [0.1.0] - 2026-08-01

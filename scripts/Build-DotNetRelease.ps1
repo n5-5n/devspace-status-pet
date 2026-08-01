@@ -63,7 +63,16 @@ if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Name -ne 'DevSpaceStatusP
 
 New-Item -ItemType Directory -Path $stageDirectory -Force | Out-Null
 Copy-Item -LiteralPath $publishedFiles[0].FullName -Destination (Join-Path $stageDirectory 'DevSpaceStatusPet.exe')
-foreach ($file in @('README.md', 'README.en.md', 'RELEASE_NOTES.md', 'LICENSE', 'CHANGELOG.md', 'DOTNET_VERSION')) {
+foreach ($file in @(
+    'README.md',
+    'README.en.md',
+    'README.dotnet.md',
+    'README.dotnet.en.md',
+    'RELEASE_NOTES.md',
+    'LICENSE',
+    'CHANGELOG.md',
+    'VERSIONING.md',
+    'DOTNET_VERSION')) {
     Copy-Item -LiteralPath (Join-Path $root $file) -Destination (Join-Path $stageDirectory $file)
 }
 

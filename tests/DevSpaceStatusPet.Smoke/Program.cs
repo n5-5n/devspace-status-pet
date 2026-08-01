@@ -37,42 +37,42 @@ migrated.Normalize();
 Check(migrated.ResolvedTheme == PetTheme.Neon, "v0.1 theme migration");
 Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
-Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "v0.2 bubble theme migration default");
+Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "legacy .NET bubble theme migration default");
 Check(migrated.ResolvedBubbleStyle == BubbleVisualStyle.Speech, "bubble design migration default");
 Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
 Check(migrated.CheckUpdatesOnStartup && !migrated.IncludePrereleaseUpdates, "update settings defaults");
 Check(migrated.Clone().CheckUpdatesOnStartup, "update settings clone");
 
-Check(SemanticVersion.TryParse("v0.2.1", out var stableVersion) && stableVersion.ToString() == "0.2.1", "stable version parsing");
-Check(SemanticVersion.TryParse("0.3.0-beta.2", out var previewVersion) && previewVersion.IsPrerelease, "prerelease version parsing");
-Check(stableVersion.CompareTo(new SemanticVersion(0, 2, 1, "beta.1")) > 0, "stable outranks prerelease");
+Check(SemanticVersion.TryParse("v0.1.2", out var stableVersion) && stableVersion.ToString() == "0.1.2", "stable version parsing");
+Check(SemanticVersion.TryParse("0.1.3-beta.2", out var previewVersion) && previewVersion.IsPrerelease, "prerelease version parsing");
+Check(stableVersion.CompareTo(new SemanticVersion(0, 1, 2, "beta.1")) > 0, "stable outranks prerelease");
 
 using (var releasesDocument = JsonDocument.Parse("""
 [
   {
-    "tag_name": "v0.2.1",
-    "name": "DevSpace Status Pet v0.2.1",
-    "html_url": "https://example.test/v0.2.1",
+    "tag_name": "v0.1.2",
+    "name": "DevSpace Status Pet v0.1.2",
+    "html_url": "https://example.test/v0.1.2",
     "body": "Stable notes",
     "draft": false,
     "prerelease": false,
     "published_at": "2026-08-01T00:00:00Z",
     "assets": [
-      { "name": "DevSpace-Status-Pet-v0.2.1-win-x64.zip", "browser_download_url": "https://example.test/stable.zip", "size": 123 },
-      { "name": "DevSpace-Status-Pet-v0.2.1-win-x64.zip.sha256", "browser_download_url": "https://example.test/stable.sha256", "size": 100 }
+      { "name": "DevSpace-Status-Pet-v0.1.2-win-x64.zip", "browser_download_url": "https://example.test/stable.zip", "size": 123 },
+      { "name": "DevSpace-Status-Pet-v0.1.2-win-x64.zip.sha256", "browser_download_url": "https://example.test/stable.sha256", "size": 100 }
     ]
   },
   {
-    "tag_name": "v0.3.0-beta.2",
-    "name": "DevSpace Status Pet v0.3.0-beta.2",
-    "html_url": "https://example.test/v0.3.0-beta.2",
+    "tag_name": "v0.1.3-beta.2",
+    "name": "DevSpace Status Pet v0.1.3-beta.2",
+    "html_url": "https://example.test/v0.1.3-beta.2",
     "body": "Preview notes",
     "draft": false,
     "prerelease": true,
     "published_at": "2026-08-02T00:00:00Z",
     "assets": [
-      { "name": "DevSpace-Status-Pet-v0.3.0-beta.2-win-x64.zip", "browser_download_url": "https://example.test/preview.zip", "size": 456 },
-      { "name": "DevSpace-Status-Pet-v0.3.0-beta.2-win-x64.zip.sha256", "browser_download_url": "https://example.test/preview.sha256", "size": 100 }
+      { "name": "DevSpace-Status-Pet-v0.1.3-beta.2-win-x64.zip", "browser_download_url": "https://example.test/preview.zip", "size": 456 },
+      { "name": "DevSpace-Status-Pet-v0.1.3-beta.2-win-x64.zip.sha256", "browser_download_url": "https://example.test/preview.sha256", "size": 100 }
     ]
   }
 ]
@@ -80,14 +80,14 @@ using (var releasesDocument = JsonDocument.Parse("""
 {
     var stableRelease = UpdateService.SelectLatestRelease(
         releasesDocument.RootElement,
-        new SemanticVersion(0, 2, 0, null),
+        new SemanticVersion(0, 1, 1, null),
         includePrereleases: false);
     var previewRelease = UpdateService.SelectLatestRelease(
         releasesDocument.RootElement,
-        new SemanticVersion(0, 2, 0, null),
+        new SemanticVersion(0, 1, 1, null),
         includePrereleases: true);
-    Check(stableRelease?.Version == "0.2.1", "stable update selection");
-    Check(previewRelease?.Version == "0.3.0-beta.2", "prerelease update selection");
+    Check(stableRelease?.Version == "0.1.2", "stable update selection");
+    Check(previewRelease?.Version == "0.1.3-beta.2", "prerelease update selection");
 }
 
 Check(UpdateService.ParseSha256($"{new string('a', 64)}  package.zip") == new string('a', 64), "SHA-256 text parsing");
@@ -241,20 +241,20 @@ var updateUiLocalizer = new Localizer(() => updateUiStore.Current);
 var updateUiSnapshot = DevSpaceSnapshot.Initial("config.json", "serve.log", 7676);
 using (var settingsForm = new SettingsForm(updateUiStore, updateUiLocalizer, updateUiSnapshot))
 {
-    settingsForm.SetUpdateStatus("0.2.1", updateUiLocalizer["UpToDate"]);
+    settingsForm.SetUpdateStatus("0.1.2", updateUiLocalizer["UpToDate"]);
     Check(settingsForm.Controls.Find("CheckUpdatesButton", true).Length == 1, "settings update-check button");
     Check(settingsForm.Controls.Find("CheckUpdatesOnStartupInput", true).Length == 1, "settings startup update option");
     Check(settingsForm.Controls.Find("IncludePrereleaseUpdatesInput", true).Length == 1, "settings prerelease option");
     Check(settingsForm.Controls.Find("BubbleStyleInput", true).Length == 1, "settings bubble-design option");
 }
-using (var updateUiService = new UpdateService("0.2.0"))
+using (var updateUiService = new UpdateService("0.1.1"))
 using (var updateForm = new UpdateForm(
            updateUiService,
            new UpdateRelease(
-               "0.2.1",
-               "v0.2.1",
-               "DevSpace Status Pet v0.2.1",
-               "https://example.test/v0.2.1",
+               "0.1.2",
+               "v0.1.2",
+               "DevSpace Status Pet v0.1.2",
+               "https://example.test/v0.1.2",
                "Release notes",
                false,
                DateTimeOffset.Now,
