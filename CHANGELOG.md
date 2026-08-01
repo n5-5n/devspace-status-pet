@@ -2,6 +2,24 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.3.0-alpha.2] - 2026-08-01
+
+### Added
+
+- Added a Clean Monitor Card design with a single neutral border, no inner highlight, and no colored outer glow.
+- Added separate Neon and Clean Monitor Card choices to the settings window and pet context menu.
+- Added dedicated generated previews for both Monitor Card variants.
+
+### Changed
+
+- Preserved the alpha.1 Monitor Card appearance as Monitor Card (Neon).
+- Automatically migrates the legacy `MonitorCard` setting to `MonitorCardNeon`.
+- Uses the Clean Monitor Card in settings and context-menu preview images.
+
+### Tested
+
+- Added migration, clean-border contrast, layout parity, rendering, and live three-style switching tests.
+
 ## [0.3.0-alpha.1] - 2026-08-01
 
 ### Added

@@ -31,7 +31,8 @@ public sealed class PetForm : Form
     private readonly ToolStripMenuItem _lightBubbleItem;
     private readonly ToolStripMenuItem _darkBubbleItem;
     private readonly ToolStripMenuItem _speechBubbleStyleItem;
-    private readonly ToolStripMenuItem _monitorCardStyleItem;
+    private readonly ToolStripMenuItem _monitorCardNeonStyleItem;
+    private readonly ToolStripMenuItem _monitorCardCleanStyleItem;
     private readonly ToolStripMenuItem _autoLanguageItem;
     private readonly ToolStripMenuItem _japaneseLanguageItem;
     private readonly ToolStripMenuItem _englishLanguageItem;
@@ -76,8 +77,13 @@ public sealed class PetForm : Form
 
         var bubbleStyleMenu = new ToolStripMenuItem();
         _speechBubbleStyleItem = new ToolStripMenuItem { CheckOnClick = true };
-        _monitorCardStyleItem = new ToolStripMenuItem { CheckOnClick = true };
-        bubbleStyleMenu.DropDownItems.AddRange([_speechBubbleStyleItem, _monitorCardStyleItem]);
+        _monitorCardNeonStyleItem = new ToolStripMenuItem { CheckOnClick = true };
+        _monitorCardCleanStyleItem = new ToolStripMenuItem { CheckOnClick = true };
+        bubbleStyleMenu.DropDownItems.AddRange([
+            _speechBubbleStyleItem,
+            _monitorCardNeonStyleItem,
+            _monitorCardCleanStyleItem
+        ]);
 
         var languageMenu = new ToolStripMenuItem();
         _autoLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
@@ -108,7 +114,8 @@ public sealed class PetForm : Form
         _lightBubbleItem.Click += (_, _) => SetBubbleTheme(BubbleColorTheme.Light);
         _darkBubbleItem.Click += (_, _) => SetBubbleTheme(BubbleColorTheme.Dark);
         _speechBubbleStyleItem.Click += (_, _) => SetBubbleStyle(BubbleVisualStyle.Speech);
-        _monitorCardStyleItem.Click += (_, _) => SetBubbleStyle(BubbleVisualStyle.MonitorCard);
+        _monitorCardNeonStyleItem.Click += (_, _) => SetBubbleStyle(BubbleVisualStyle.MonitorCardNeon);
+        _monitorCardCleanStyleItem.Click += (_, _) => SetBubbleStyle(BubbleVisualStyle.MonitorCardClean);
         _autoLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Auto);
         _japaneseLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Japanese);
         _englishLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.English);
@@ -197,7 +204,8 @@ public sealed class PetForm : Form
 
     private static (int Height, int Gap, int ConnectorHeight) GetBubbleMetrics(BubbleVisualStyle style) => style switch
     {
-        BubbleVisualStyle.MonitorCard => (MonitorCardHeight, MonitorCardGap, MonitorConnectorHeight),
+        BubbleVisualStyle.MonitorCardNeon or BubbleVisualStyle.MonitorCardClean =>
+            (MonitorCardHeight, MonitorCardGap, MonitorConnectorHeight),
         _ => (SpeechBubbleHeight, SpeechBubbleGap, SpeechBubbleTailHeight)
     };
 
@@ -274,9 +282,9 @@ public sealed class PetForm : Form
 
     private void DrawBubbles(Graphics graphics, IReadOnlyList<DevSpaceActivity> activities, AppSettings settings)
     {
-        if (settings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard)
+        if (settings.ResolvedBubbleStyle is BubbleVisualStyle.MonitorCardNeon or BubbleVisualStyle.MonitorCardClean)
         {
-            DrawMonitorCards(graphics, activities, settings);
+            DrawMonitorCards(graphics, activities, settings, settings.ResolvedBubbleStyle);
             return;
         }
 
@@ -345,8 +353,13 @@ public sealed class PetForm : Form
         graphics.DrawLines(tailBorder, tail);
     }
 
-    private void DrawMonitorCards(Graphics graphics, IReadOnlyList<DevSpaceActivity> activities, AppSettings settings)
+    private void DrawMonitorCards(
+        Graphics graphics,
+        IReadOnlyList<DevSpaceActivity> activities,
+        AppSettings settings,
+        BubbleVisualStyle style)
     {
+        var clean = style == BubbleVisualStyle.MonitorCardClean;
         using var titleFont = new Font("Segoe UI Semibold", 16f, FontStyle.Bold, GraphicsUnit.Pixel);
         using var operationFont = new Font("Segoe UI", 13f, FontStyle.Regular, GraphicsUnit.Pixel);
         using var timeFont = new Font("Segoe UI Semibold", 17f, FontStyle.Bold, GraphicsUnit.Pixel);
@@ -362,25 +375,40 @@ public sealed class PetForm : Form
             var activity = activities[index];
             var y = BubbleTop + index * stride;
             var palette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, activity.State);
+            var cardBackground = clean
+                ? ResolveCleanCardBackground(settings.ResolvedBubbleTheme)
+                : palette.BubbleBackground;
             var rectangle = new RectangleF(4, y, MonitorCardWidth, MonitorCardHeight);
             var shadowRectangle = new RectangleF(rectangle.X + 2, rectangle.Y + 4, rectangle.Width, rectangle.Height);
             using var shadowPath = RoundedRectangle(shadowRectangle, 16f);
-            using var path = RoundedRectangle(rectangle, 16f);
-            using var accentPath = RoundedRectangle(new RectangleF(rectangle.X + 7, rectangle.Y + 12, 4, rectangle.Height - 24), 2f);
+            using var path = RoundedRectangle(rectangle, clean ? 15f : 16f);
+            using var accentPath = RoundedRectangle(
+                new RectangleF(rectangle.X + 7, rectangle.Y + 12, clean ? 3f : 4f, rectangle.Height - 24),
+                2f);
             using var shadow = new SolidBrush(BlendColor(
                 Color.Black,
-                palette.BubbleBackground,
+                cardBackground,
                 settings.ResolvedBubbleTheme == BubbleColorTheme.Dark ? 0.52f : 0.18f));
-            using var background = new SolidBrush(palette.BubbleBackground);
-            using var border = new Pen(BlendColor(palette.Outline, palette.BubbleBackground, 0.55f), 1.25f);
-            using var glow = new Pen(Color.FromArgb(settings.ResolvedTheme == PetTheme.Neon ? 55 : 24, palette.Outline), settings.ResolvedTheme == PetTheme.Neon ? 7f : 4f);
+            using var background = new SolidBrush(cardBackground);
+            using var border = new Pen(
+                clean
+                    ? ResolveCleanCardBorder(settings.ResolvedBubbleTheme)
+                    : BlendColor(palette.Outline, cardBackground, 0.55f),
+                clean ? 1f : 1.25f);
             using var accent = new SolidBrush(palette.StateColor);
             using var titleBrush = new SolidBrush(palette.Text);
             using var mutedBrush = new SolidBrush(palette.Muted);
-            using var separator = new Pen(BlendColor(palette.Muted, palette.BubbleBackground, 0.24f), 1f);
+            using var separator = new Pen(BlendColor(palette.Muted, cardBackground, clean ? 0.16f : 0.24f), 1f);
 
-            graphics.FillPath(shadow, shadowPath);
-            graphics.DrawPath(glow, path);
+            if (!clean)
+            {
+                graphics.FillPath(shadow, shadowPath);
+                using var glow = new Pen(
+                    Color.FromArgb(settings.ResolvedTheme == PetTheme.Neon ? 55 : 24, palette.Outline),
+                    settings.ResolvedTheme == PetTheme.Neon ? 7f : 4f);
+                graphics.DrawPath(glow, path);
+            }
+
             graphics.FillPath(background, path);
             graphics.DrawPath(border, path);
             graphics.FillPath(accent, accentPath);
@@ -409,8 +437,14 @@ public sealed class PetForm : Form
             var statusWidth = Math.Clamp(graphics.MeasureString(statusText, badgeFont).Width + 26f, 78f, 150f);
             var statusRectangle = new RectangleF(rectangle.X + 18, y + 63, statusWidth, 18);
             using var statusPath = RoundedRectangle(statusRectangle, 9f);
-            using var statusBackground = new SolidBrush(BlendColor(palette.StateColor, palette.BubbleBackground, 0.18f));
-            using var statusBorder = new Pen(BlendColor(palette.StateColor, palette.BubbleBackground, 0.62f), 1f);
+            using var statusBackground = new SolidBrush(BlendColor(
+                palette.StateColor,
+                cardBackground,
+                clean ? 0.13f : 0.18f));
+            using var statusBorder = new Pen(BlendColor(
+                palette.StateColor,
+                cardBackground,
+                clean ? 0.42f : 0.62f), 1f);
             using var statusBrush = new SolidBrush(BlendColor(palette.StateColor, palette.Text, 0.72f));
             graphics.FillPath(statusBackground, statusPath);
             graphics.DrawPath(statusBorder, statusPath);
@@ -422,12 +456,14 @@ public sealed class PetForm : Form
                 new RectangleF(statusRectangle.X + 14, statusRectangle.Y + 1, statusRectangle.Width - 17, 15),
                 badgeFormat);
 
-            DrawActivityMeter(graphics, activity.State, palette, rectangle.Right - 66, y + 67);
+            DrawActivityMeter(graphics, activity.State, palette, cardBackground, rectangle.Right - 66, y + 67);
         }
 
         var connectorStart = BubbleTop + ((activities.Count - 1) * stride) + MonitorCardHeight;
         var connectorPalette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, activities[^1].State);
-        using var connector = new Pen(connectorPalette.Outline, 2f)
+        using var connector = new Pen(
+            clean ? connectorPalette.StateColor : connectorPalette.Outline,
+            clean ? 1.5f : 2f)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round
@@ -438,7 +474,13 @@ public sealed class PetForm : Form
         graphics.FillEllipse(connectorDot, centerX - 4, connectorStart + MonitorConnectorHeight - 8, 8, 8);
     }
 
-    private void DrawActivityMeter(Graphics graphics, ActivityState state, Palette palette, float x, float y)
+    private void DrawActivityMeter(
+        Graphics graphics,
+        ActivityState state,
+        Palette palette,
+        Color cardBackground,
+        float x,
+        float y)
     {
         var activeSegment = state == ActivityState.Working
             ? (_frame / 4) % 3
@@ -448,11 +490,23 @@ public sealed class PetForm : Form
             var height = 5f + (index * 2f);
             var rectangle = new RectangleF(x + (index * 16f), y + (10f - height), 11f, height);
             var amount = index == activeSegment ? 0.9f : 0.25f;
-            using var brush = new SolidBrush(BlendColor(palette.StateColor, palette.BubbleBackground, amount));
+            using var brush = new SolidBrush(BlendColor(palette.StateColor, cardBackground, amount));
             using var path = RoundedRectangle(rectangle, 2f);
             graphics.FillPath(brush, path);
         }
     }
+
+    internal static Color ResolveCleanCardBackground(BubbleColorTheme theme) => theme switch
+    {
+        BubbleColorTheme.Light => Color.FromArgb(248, 250, 253),
+        _ => Color.FromArgb(23, 27, 35)
+    };
+
+    internal static Color ResolveCleanCardBorder(BubbleColorTheme theme) => theme switch
+    {
+        BubbleColorTheme.Light => Color.FromArgb(205, 211, 222),
+        _ => Color.FromArgb(61, 68, 82)
+    };
 
     private static Color BlendColor(Color foreground, Color background, float foregroundAmount)
     {
@@ -610,9 +664,11 @@ public sealed class PetForm : Form
         var bubbleStyleMenu = (ToolStripMenuItem)_speechBubbleStyleItem.OwnerItem!;
         bubbleStyleMenu.Text = _localizer["BubbleStyle"];
         _speechBubbleStyleItem.Text = _localizer["BubbleSpeech"];
-        _monitorCardStyleItem.Text = _localizer["BubbleMonitorCard"];
+        _monitorCardNeonStyleItem.Text = _localizer["BubbleMonitorCardNeon"];
+        _monitorCardCleanStyleItem.Text = _localizer["BubbleMonitorCardClean"];
         _speechBubbleStyleItem.Checked = settings.ResolvedBubbleStyle == BubbleVisualStyle.Speech;
-        _monitorCardStyleItem.Checked = settings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard;
+        _monitorCardNeonStyleItem.Checked = settings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCardNeon;
+        _monitorCardCleanStyleItem.Checked = settings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCardClean;
 
         var languageMenu = (ToolStripMenuItem)_autoLanguageItem.OwnerItem!;
         languageMenu.Text = _localizer["Language"];

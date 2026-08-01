@@ -202,8 +202,12 @@ Check(darkBubbleSettings.ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bub
 Check(darkBubbleSettings.Clone().ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bubble setting clone");
 var monitorCardSettings = new AppSettings { BubbleStyle = "MonitorCard" };
 monitorCardSettings.Normalize();
-Check(monitorCardSettings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard, "monitor-card setting normalization");
-Check(monitorCardSettings.Clone().ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard, "monitor-card setting clone");
+Check(monitorCardSettings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCardNeon, "legacy monitor-card migration");
+Check(monitorCardSettings.BubbleStyle == nameof(BubbleVisualStyle.MonitorCardNeon), "legacy monitor-card normalization");
+var cleanMonitorCardSettings = new AppSettings { BubbleStyle = "MonitorCardClean" };
+cleanMonitorCardSettings.Normalize();
+Check(cleanMonitorCardSettings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCardClean, "clean monitor-card setting normalization");
+Check(cleanMonitorCardSettings.Clone().ResolvedBubbleStyle == BubbleVisualStyle.MonitorCardClean, "clean monitor-card setting clone");
 var lightBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Light);
 var darkBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Dark);
 Check(lightBubbleColors.Background != darkBubbleColors.Background, "light and dark bubble palettes differ");
@@ -436,11 +440,17 @@ Check(waitingAtQuietThreshold.Count == 0, "waiting bubble expires at quiet thres
 var defaultLayout = PetForm.CalculateClientSize(new AppSettings(), 1);
 var largeLayout = PetForm.CalculateClientSize(new AppSettings { Scale = 2.0 }, 1);
 var parallelLayout = PetForm.CalculateClientSize(new AppSettings(), 3);
-var monitorCardLayout = PetForm.CalculateClientSize(new AppSettings { BubbleStyle = "MonitorCard" }, 3);
+var neonMonitorCardLayout = PetForm.CalculateClientSize(new AppSettings { BubbleStyle = "MonitorCardNeon" }, 3);
+var cleanMonitorCardLayout = PetForm.CalculateClientSize(new AppSettings { BubbleStyle = "MonitorCardClean" }, 3);
 Check(defaultLayout.Width >= 340 && defaultLayout.Height >= 360, "larger default pet layout");
 Check(largeLayout.Width > defaultLayout.Width && largeLayout.Height > defaultLayout.Height, "scale changes layout size");
 Check(parallelLayout.Height > defaultLayout.Height + 150, "parallel bubbles expand window");
-Check(monitorCardLayout.Height > parallelLayout.Height, "monitor cards use expanded information layout");
+Check(neonMonitorCardLayout.Height > parallelLayout.Height, "neon monitor cards use expanded information layout");
+Check(cleanMonitorCardLayout == neonMonitorCardLayout, "clean monitor cards preserve monitor layout");
+var cleanCardBackground = PetForm.ResolveCleanCardBackground(BubbleColorTheme.Dark);
+var cleanCardBorder = PetForm.ResolveCleanCardBorder(BubbleColorTheme.Dark);
+Check(cleanCardBackground != cleanCardBorder, "clean monitor-card single border contrast");
+Check(cleanCardBorder.GetBrightness() > cleanCardBackground.GetBrightness(), "clean monitor-card border remains subtle and visible");
 
 var renderNow = DateTimeOffset.Now;
 var renderActivities = new[]
@@ -478,7 +488,7 @@ var renderSettings = new AppSettings
 {
     Language = "English",
     BubbleTheme = "Dark",
-    BubbleStyle = "MonitorCard",
+    BubbleStyle = "MonitorCardClean",
     Scale = 1.0,
     MaxBubbles = 4
 };
@@ -496,7 +506,20 @@ using (var renderPet = new PetForm(renderStore, new PositionStore(null), renderL
             sampledColors.Add(renderedCard.GetPixel(x, y).ToArgb());
         }
     }
-    Check(sampledColors.Count >= 20, "monitor-card visual rendering");
+    Check(sampledColors.Count >= 20, "clean monitor-card visual rendering");
+
+    renderSettings.BubbleStyle = "MonitorCardNeon";
+    renderStore.Save(renderSettings);
+    using var renderedNeonCard = renderPet.RenderPreview(Color.FromArgb(18, 20, 26));
+    var neonSampledColors = new HashSet<int>();
+    for (var y = 0; y < renderedNeonCard.Height; y += 8)
+    {
+        for (var x = 0; x < renderedNeonCard.Width; x += 8)
+        {
+            neonSampledColors.Add(renderedNeonCard.GetPixel(x, y).ToArgb());
+        }
+    }
+    Check(neonSampledColors.Count >= 20, "neon monitor-card visual rendering");
 }
 
 var inspector = new NativeProcessInspector();

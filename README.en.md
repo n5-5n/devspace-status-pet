@@ -5,7 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.2.1 (C# / .NET 8 single executable)**<br>
-> **Development build: v0.3.0-alpha.1 (Monitor Card design)**<br>
+> **Development build: v0.3.0-alpha.2 (Clean Monitor Card and single-border rendering)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -19,7 +19,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Removes completed `Waiting for next step` bubbles after the configured quiet period
 - Classic and Neon robot themes
 - Independent Light and Dark speech-bubble themes
-- Immediate switching between Standard Speech Bubble and information-dense Monitor Card designs
+- Immediate switching between Standard Speech Bubble, Neon Monitor Card, and Clean Monitor Card designs
 - Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
@@ -30,9 +30,13 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 
 ## Preview
 
-| Standard Classic | Standard Neon | Monitor Card |
-|---|---|---|
-| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) | ![Monitor card preview](docs/preview-monitor-card.png) |
+| Standard Classic | Standard Neon |
+|---|---|
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+
+| Monitor Card (Neon) | Monitor Card (Clean) |
+|---|---|
+| ![Neon monitor card preview](docs/preview-monitor-card-neon.png) | ![Clean monitor card preview](docs/preview-monitor-card-clean.png) |
 
 | Dark settings window | Safe updater |
 |---|---|
@@ -115,7 +119,7 @@ Right-click the pet or tray icon and open **Settings**. Changes are applied imme
 - Display language: Auto, Japanese, or English
 - Robot theme: Classic or Neon
 - Bubble theme: Light or Dark
-- Bubble design: Standard Speech Bubble or Monitor Card
+- Bubble design: Standard Speech Bubble, Monitor Card (Neon), or Monitor Card (Clean)
 - Pet size and opacity
 - Bubble visibility and maximum count
 - Completion quiet period
