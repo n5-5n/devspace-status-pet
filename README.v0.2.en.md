@@ -1,49 +1,57 @@
-# DevSpace Status Pet v0.2 (.NET edition)
+# DevSpace Status Pet v0.2.0
 
 **[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
 
-v0.2 is the next-generation C# / .NET 8 edition that consolidates the PowerShell v0.1 features into one executable. v0.1.0 remains the stable release while v0.2 is currently an alpha build.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.2.0 is the stable C# / .NET 8 release and combines the tray monitor, pet, and settings window in one self-contained executable.
 
-## Implemented
+## Requirements
 
-- Tray monitor, desktop pet, and settings window in one process
-- One self-contained `DevSpaceStatusPet.exe`
-- No .NET Runtime installation or PowerShell execution-policy changes required
-- Automatic DevSpace port, log, and child-process detection
-- Up to eight parallel workspace bubbles
-- Classic and Neon robot themes
-- Independent Light and Dark speech-bubble themes
-- Unified dark UI for the tray menu, pet menu, and settings window
-- Japanese, English, and automatic OS-language selection
-- Instant GUI controls for size, opacity, themes, completion delay, stall threshold, and bubble count
-- Automatic migration of the v0.1 settings JSON
-- One completion notification after a quiet period instead of notifications for every tool call
-- Crash log at `%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log`
-- Self-installation, Windows startup registration, and self-uninstallation
+- Windows 10 or Windows 11, x64
+- `@waishnav/devspace` running on the same computer
 
-## Portable use
+No separate .NET Runtime installation is required.
 
-Run `DevSpaceStatusPet.exe` directly.
+## Install or update
 
-Open the settings window immediately:
+1. Extract the ZIP
+2. Run `DevSpaceStatusPet.exe`
+3. Select **Install / update v0.2** from the context menu
 
-```text
-DevSpaceStatusPet.exe --settings
-```
-
-## Install
+Or run:
 
 ```text
 DevSpaceStatusPet.exe --install
 ```
 
-The executable is copied to:
+Install location:
 
 ```text
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-A desktop shortcut and Windows startup entry are also created.
+Existing v0.1 and v0.2 alpha settings are reused automatically.
+
+## Main features
+
+- Project name, operation, and elapsed-time display
+- Separate bubbles for parallel workspaces
+- UTF-8, UTF-16, and UTF-32 DevSpace log support
+- Completion, failure, stall, and DevSpace stopped notifications
+- Automatic removal of completed waiting bubbles
+- Classic and Neon robot themes
+- Light and Dark speech-bubble themes
+- Dark context menus and settings window
+- Japanese, English, and automatic OS-language selection
+- Immediate size, opacity, timing, and bubble-count changes
+- Windows startup, self-uninstallation, and crash logging
+
+## Portable use
+
+You can run the extracted executable without installing it.
+
+```text
+DevSpaceStatusPet.exe --settings
+```
 
 ## Uninstall
 
@@ -59,21 +67,21 @@ Remove settings too:
 DevSpaceStatusPet.exe --uninstall --remove-settings
 ```
 
-## Development and validation
+The uninstaller does not modify DevSpace itself or any project.
 
-```powershell
-dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
-dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
-dotnet publish .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -r win-x64 --self-contained true
-```
-
-## Relationship to v0.1
-
-v0.2 reads the existing settings without conversion steps:
+## Settings locations
 
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-During the alpha period, v0.2 does not remove v0.1 automatically and uses a separate install directory and mutex.
+Crash log:
+
+```text
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
+```
+
+## Legacy v0.1 release
+
+The PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.

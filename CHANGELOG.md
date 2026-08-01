@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0] - 2026-08-01
+
+### Stable release
+
+- Promoted the tested .NET 8 single-executable implementation to the default stable release.
+- Consolidated the tray monitor, desktop pet, settings window, notifications, and diagnostics into one process.
+- Included all fixes from alpha.1 through alpha.6: high-DPI layout, parallel workspace bubbles, log encoding detection, workspace identity recovery, waiting-bubble expiration, live settings, independent robot/bubble themes, and the dark application UI.
+- Updated the GitHub release workflow to publish stable tags without the prerelease flag while retaining prerelease support for suffixed versions.
+- Updated Japanese and English documentation so v0.2 is the primary release and v0.1 is the legacy PowerShell fallback.
+
 ## [0.2.0-alpha.6] - 2026-08-01
 
 ### Added
