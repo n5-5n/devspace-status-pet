@@ -349,7 +349,8 @@ public sealed class SettingsForm : Form
         _bubbleStyleBox.Items.Clear();
         _bubbleStyleBox.Items.AddRange([
             new Choice<BubbleVisualStyle>(BubbleVisualStyle.Speech, _localizer["BubbleSpeech"]),
-            new Choice<BubbleVisualStyle>(BubbleVisualStyle.MonitorCard, _localizer["BubbleMonitorCard"])
+            new Choice<BubbleVisualStyle>(BubbleVisualStyle.MonitorCardNeon, _localizer["BubbleMonitorCardNeon"]),
+            new Choice<BubbleVisualStyle>(BubbleVisualStyle.MonitorCardClean, _localizer["BubbleMonitorCardClean"])
         ]);
         _bubbleStyleBox.SelectedItem = _bubbleStyleBox.Items
             .OfType<Choice<BubbleVisualStyle>>()

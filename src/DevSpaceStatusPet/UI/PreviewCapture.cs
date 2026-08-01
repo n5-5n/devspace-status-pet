@@ -18,7 +18,8 @@ internal static class PreviewCapture
 
         CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, BubbleVisualStyle.Speech, "preview-classic.png");
         CapturePetPreview(outputDirectory, snapshot, PetTheme.Neon, BubbleVisualStyle.Speech, "preview-neon.png");
-        CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, BubbleVisualStyle.MonitorCard, "preview-monitor-card.png");
+        CapturePetPreview(outputDirectory, snapshot, PetTheme.Neon, BubbleVisualStyle.MonitorCardNeon, "preview-monitor-card-neon.png");
+        CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, BubbleVisualStyle.MonitorCardClean, "preview-monitor-card-clean.png");
         CaptureMenuPreview(outputDirectory, snapshot);
         CaptureSettingsPreview(outputDirectory, snapshot);
         CaptureUpdaterPreview(outputDirectory);
@@ -48,7 +49,7 @@ internal static class PreviewCapture
 
     private static void CaptureMenuPreview(string outputDirectory, DevSpaceSnapshot snapshot)
     {
-        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCard);
+        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCardClean);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
         using var pet = new PetForm(store, new PositionStore(null), localizer);
@@ -83,7 +84,7 @@ internal static class PreviewCapture
 
     private static void CaptureSettingsPreview(string outputDirectory, DevSpaceSnapshot snapshot)
     {
-        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCard);
+        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCardClean);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
         using var form = new SettingsForm(store, localizer, snapshot)

@@ -15,7 +15,8 @@ public enum BubbleColorTheme
 public enum BubbleVisualStyle
 {
     Speech,
-    MonitorCard
+    MonitorCardNeon,
+    MonitorCardClean
 }
 
 public enum UiLanguagePreference
@@ -50,10 +51,20 @@ public sealed class AppSettings
             ? value
             : BubbleColorTheme.Light;
 
-    public BubbleVisualStyle ResolvedBubbleStyle =>
-        Enum.TryParse<BubbleVisualStyle>(BubbleStyle, true, out var value)
-            ? value
-            : BubbleVisualStyle.Speech;
+    public BubbleVisualStyle ResolvedBubbleStyle
+    {
+        get
+        {
+            if (string.Equals(BubbleStyle, "MonitorCard", StringComparison.OrdinalIgnoreCase))
+            {
+                return BubbleVisualStyle.MonitorCardNeon;
+            }
+
+            return Enum.TryParse<BubbleVisualStyle>(BubbleStyle, true, out var value)
+                ? value
+                : BubbleVisualStyle.Speech;
+        }
+    }
 
     public UiLanguagePreference LanguagePreference =>
         Enum.TryParse<UiLanguagePreference>(Language, true, out var value)
@@ -86,9 +97,16 @@ public sealed class AppSettings
         BubbleTheme = Enum.TryParse<BubbleColorTheme>(BubbleTheme, true, out var bubbleTheme)
             ? bubbleTheme.ToString()
             : nameof(BubbleColorTheme.Light);
-        BubbleStyle = Enum.TryParse<BubbleVisualStyle>(BubbleStyle, true, out var bubbleStyle)
-            ? bubbleStyle.ToString()
-            : nameof(BubbleVisualStyle.Speech);
+        if (string.Equals(BubbleStyle, "MonitorCard", StringComparison.OrdinalIgnoreCase))
+        {
+            BubbleStyle = nameof(BubbleVisualStyle.MonitorCardNeon);
+        }
+        else
+        {
+            BubbleStyle = Enum.TryParse<BubbleVisualStyle>(BubbleStyle, true, out var bubbleStyle)
+                ? bubbleStyle.ToString()
+                : nameof(BubbleVisualStyle.Speech);
+        }
         Language = Enum.TryParse<UiLanguagePreference>(Language, true, out var language)
             ? language.ToString()
             : nameof(UiLanguagePreference.Auto);

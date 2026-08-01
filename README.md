@@ -5,7 +5,7 @@
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
 > **安定版：v0.2.1（C# / .NET 8・単一EXE）**<br>
-> **開発版：v0.3.0-alpha.1（モニターカード追加）**<br>
+> **開発版：v0.3.0-alpha.2（クリーンカード追加・二重枠解消）**<br>
 > 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
 ## 主な機能
@@ -19,7 +19,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 - 完了後の「次の処理待ち」吹き出しを設定時間で自動削除
 - クラシック／ネオンのロボットテーマ
 - ライト／ダークの吹き出しテーマ
-- 標準吹き出し／情報密度の高いモニターカードを即時切替
+- 標準吹き出し／ネオンカード／クリーンカードを即時切替
 - ダーク化されたタスクトレイメニュー、ペットメニュー、設定画面
 - 日本語／English／OS言語自動選択
 - サイズ、透明度、通知時間、停滞判定、吹き出し数を即時変更
@@ -30,9 +30,13 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## プレビュー
 
-| 標準・クラシック | 標準・ネオン | モニターカード |
-|---|---|---|
-| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) | ![Monitor card preview](docs/preview-monitor-card.png) |
+| 標準・クラシック | 標準・ネオン |
+|---|---|
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+
+| モニターカード（ネオン） | モニターカード（クリーン） |
+|---|---|
+| ![Neon monitor card preview](docs/preview-monitor-card-neon.png) | ![Clean monitor card preview](docs/preview-monitor-card-clean.png) |
 
 | ダーク設定画面 | 安全な更新画面 |
 |---|---|
@@ -115,7 +119,7 @@ VideoShrink
 - 表示言語：自動／日本語／English
 - ロボットテーマ：クラシック／ネオン
 - 吹き出しテーマ：ライト／ダーク
-- 吹き出しデザイン：標準吹き出し／モニターカード
+- 吹き出しデザイン：標準吹き出し／モニターカード（ネオン）／モニターカード（クリーン）
 - ペットサイズ、透明度
 - 吹き出し表示と最大件数
 - 完了通知までの待機秒数

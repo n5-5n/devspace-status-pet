@@ -218,26 +218,44 @@ try {
     else {
         'Speech'
     }
-    $testBubbleStyle = if ($originalBubbleStyle -eq 'MonitorCard') { 'Speech' } else { 'MonitorCard' }
     $styleBefore = $petWindow.Current.BoundingRectangle
+
+    # The clean card is the last item in the three-style list.
     $bubbleStyleInput.SetFocus()
-    [System.Windows.Forms.SendKeys]::SendWait($(if ($testBubbleStyle -eq 'MonitorCard') { '{END}' } else { '{HOME}' }))
+    [System.Windows.Forms.SendKeys]::SendWait('{END}')
     Start-Sleep -Seconds 2
-    $styleAfter = $petWindow.Current.BoundingRectangle
-    $changedStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
-    if ([string]$changedStyleSettings.BubbleStyle -ne $testBubbleStyle) {
-        throw "Bubble design was not saved immediately. Expected $testBubbleStyle, got $($changedStyleSettings.BubbleStyle)."
-    }
-    if ([Math]::Abs($styleAfter.Height - $styleBefore.Height) -lt 20) {
-        throw "Pet height did not change after bubble-design switch. Before=$($styleBefore.Height), After=$($styleAfter.Height)."
+    $cleanStyleBounds = $petWindow.Current.BoundingRectangle
+    $cleanStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$cleanStyleSettings.BubbleStyle -ne 'MonitorCardClean') {
+        throw "Clean monitor-card design was not saved immediately. Got $($cleanStyleSettings.BubbleStyle)."
     }
 
+    # Speech is the first item and must use a visibly shorter layout.
     $bubbleStyleInput.SetFocus()
-    [System.Windows.Forms.SendKeys]::SendWait($(if ($originalBubbleStyle -eq 'MonitorCard') { '{END}' } else { '{HOME}' }))
+    [System.Windows.Forms.SendKeys]::SendWait('{HOME}')
+    Start-Sleep -Seconds 2
+    $speechStyleBounds = $petWindow.Current.BoundingRectangle
+    $speechStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$speechStyleSettings.BubbleStyle -ne 'Speech') {
+        throw "Speech-bubble design was not saved immediately. Got $($speechStyleSettings.BubbleStyle)."
+    }
+    if ([Math]::Abs($cleanStyleBounds.Height - $speechStyleBounds.Height) -lt 20) {
+        throw "Pet height did not change between clean card and speech styles. Clean=$($cleanStyleBounds.Height), Speech=$($speechStyleBounds.Height)."
+    }
+
+    $restoreKeys = switch ($originalBubbleStyle) {
+        'MonitorCardClean' { '{END}' }
+        'MonitorCardNeon' { '{HOME}{DOWN}' }
+        'MonitorCard' { '{HOME}{DOWN}' }
+        default { '{HOME}' }
+    }
+    $expectedRestoredStyle = if ($originalBubbleStyle -eq 'MonitorCard') { 'MonitorCardNeon' } else { $originalBubbleStyle }
+    $bubbleStyleInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($restoreKeys)
     Start-Sleep -Seconds 2
     $restoredStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
-    if ([string]$restoredStyleSettings.BubbleStyle -ne $originalBubbleStyle) {
-        throw "Bubble design was not restored. Expected $originalBubbleStyle, got $($restoredStyleSettings.BubbleStyle)."
+    if ([string]$restoredStyleSettings.BubbleStyle -ne $expectedRestoredStyle) {
+        throw "Bubble design was not restored. Expected $expectedRestoredStyle, got $($restoredStyleSettings.BubbleStyle)."
     }
 
     [pscustomobject]@{
@@ -254,9 +272,10 @@ try {
         BubbleThemeTest = $testBubbleTheme
         BubbleThemeRestored = [string]$restoredSettings.BubbleTheme
         BubbleStyleBefore = $originalBubbleStyle
-        BubbleStyleTest = $testBubbleStyle
+        BubbleStyleTest = 'MonitorCardClean'
         BubbleStyleHeightBefore = [Math]::Round($styleBefore.Height, 1)
-        BubbleStyleHeightAfter = [Math]::Round($styleAfter.Height, 1)
+        BubbleStyleCleanHeight = [Math]::Round($cleanStyleBounds.Height, 1)
+        BubbleStyleSpeechHeight = [Math]::Round($speechStyleBounds.Height, 1)
         BubbleStyleRestored = [string]$restoredStyleSettings.BubbleStyle
     } | Format-List
 
