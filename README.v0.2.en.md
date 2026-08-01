@@ -11,9 +11,10 @@ v0.2 is the next-generation C# / .NET 8 edition that consolidates the PowerShell
 - No .NET Runtime installation or PowerShell execution-policy changes required
 - Automatic DevSpace port, log, and child-process detection
 - Up to eight parallel workspace bubbles
-- Classic and Neon themes
+- Classic and Neon robot themes
+- Independent Light and Dark speech-bubble themes
 - Japanese, English, and automatic OS-language selection
-- GUI controls for size, opacity, completion delay, stall threshold, and bubble count
+- Instant GUI controls for size, opacity, themes, completion delay, stall threshold, and bubble count
 - Automatic migration of the v0.1 settings JSON
 - One completion notification after a quiet period instead of notifications for every tool call
 - Crash log at `%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log`

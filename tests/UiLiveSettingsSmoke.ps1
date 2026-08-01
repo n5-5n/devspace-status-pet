@@ -167,6 +167,40 @@ try {
     Start-Sleep -Seconds 2
     $restored = $petWindow.Current.BoundingRectangle
 
+    $bubbleThemeCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+        'BubbleThemeInput')
+    $bubbleThemeInput = $settingsWindow.FindFirst(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        $bubbleThemeCondition)
+    if ($null -eq $bubbleThemeInput) {
+        throw 'BubbleThemeInput was not found through UI Automation.'
+    }
+
+    $currentSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    $originalBubbleTheme = if ($currentSettings.PSObject.Properties.Name -contains 'BubbleTheme') {
+        [string]$currentSettings.BubbleTheme
+    }
+    else {
+        'Light'
+    }
+    $testBubbleTheme = if ($originalBubbleTheme -eq 'Dark') { 'Light' } else { 'Dark' }
+    $bubbleThemeInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($(if ($testBubbleTheme -eq 'Dark') { '{END}' } else { '{HOME}' }))
+    Start-Sleep -Seconds 2
+    $changedSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$changedSettings.BubbleTheme -ne $testBubbleTheme) {
+        throw "Bubble theme was not saved immediately. Expected $testBubbleTheme, got $($changedSettings.BubbleTheme)."
+    }
+
+    $bubbleThemeInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($(if ($originalBubbleTheme -eq 'Dark') { '{END}' } else { '{HOME}' }))
+    Start-Sleep -Seconds 2
+    $restoredSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$restoredSettings.BubbleTheme -ne $originalBubbleTheme) {
+        throw "Bubble theme was not restored. Expected $originalBubbleTheme, got $($restoredSettings.BubbleTheme)."
+    }
+
     [pscustomobject]@{
         OriginalScale = $original
         TestScale = $testValue
@@ -177,6 +211,9 @@ try {
         WidthRestored = [Math]::Round($restored.Width, 1)
         HeightRestored = [Math]::Round($restored.Height, 1)
         SavedImmediately = $true
+        BubbleThemeBefore = $originalBubbleTheme
+        BubbleThemeTest = $testBubbleTheme
+        BubbleThemeRestored = [string]$restoredSettings.BubbleTheme
     } | Format-List
 
     Write-Host '[OK] Live settings UI smoke test' -ForegroundColor Green

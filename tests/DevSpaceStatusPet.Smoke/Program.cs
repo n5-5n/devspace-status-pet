@@ -31,7 +31,17 @@ migrated.Normalize();
 Check(migrated.ResolvedTheme == PetTheme.Neon, "v0.1 theme migration");
 Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
+Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "v0.2 bubble theme migration default");
 Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
+
+var darkBubbleSettings = new AppSettings { BubbleTheme = "Dark" };
+darkBubbleSettings.Normalize();
+Check(darkBubbleSettings.ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bubble setting normalization");
+Check(darkBubbleSettings.Clone().ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bubble setting clone");
+var lightBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Light);
+var darkBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Dark);
+Check(lightBubbleColors.Background != darkBubbleColors.Background, "light and dark bubble palettes differ");
+Check(darkBubbleColors.Text.GetBrightness() > darkBubbleColors.Background.GetBrightness(), "dark bubble text contrast");
 
 var current = new AppSettings { Language = "English" };
 var localizer = new Localizer(() => current);

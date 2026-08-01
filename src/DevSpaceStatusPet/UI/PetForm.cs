@@ -25,6 +25,8 @@ public sealed class PetForm : Form
     private readonly ToolStripMenuItem _bubbleItem;
     private readonly ToolStripMenuItem _classicItem;
     private readonly ToolStripMenuItem _neonItem;
+    private readonly ToolStripMenuItem _lightBubbleItem;
+    private readonly ToolStripMenuItem _darkBubbleItem;
     private readonly ToolStripMenuItem _autoLanguageItem;
     private readonly ToolStripMenuItem _japaneseLanguageItem;
     private readonly ToolStripMenuItem _englishLanguageItem;
@@ -62,6 +64,11 @@ public sealed class PetForm : Form
         _neonItem = new ToolStripMenuItem { CheckOnClick = true };
         themeMenu.DropDownItems.AddRange([_classicItem, _neonItem]);
 
+        var bubbleThemeMenu = new ToolStripMenuItem();
+        _lightBubbleItem = new ToolStripMenuItem { CheckOnClick = true };
+        _darkBubbleItem = new ToolStripMenuItem { CheckOnClick = true };
+        bubbleThemeMenu.DropDownItems.AddRange([_lightBubbleItem, _darkBubbleItem]);
+
         var languageMenu = new ToolStripMenuItem();
         _autoLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
         _japaneseLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
@@ -74,6 +81,7 @@ public sealed class PetForm : Form
         _menu.Items.AddRange([
             _bubbleItem,
             themeMenu,
+            bubbleThemeMenu,
             languageMenu,
             _settingsItem,
             _resetItem,
@@ -85,6 +93,8 @@ public sealed class PetForm : Form
         _bubbleItem.Click += (_, _) => UpdateSettings(settings => settings.ShowBubble = _bubbleItem.Checked);
         _classicItem.Click += (_, _) => SetTheme(PetTheme.Classic);
         _neonItem.Click += (_, _) => SetTheme(PetTheme.Neon);
+        _lightBubbleItem.Click += (_, _) => SetBubbleTheme(BubbleColorTheme.Light);
+        _darkBubbleItem.Click += (_, _) => SetBubbleTheme(BubbleColorTheme.Dark);
         _autoLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Auto);
         _japaneseLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Japanese);
         _englishLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.English);
@@ -237,7 +247,7 @@ public sealed class PetForm : Form
         {
             var activity = activities[index];
             var y = BubbleTop + index * BubbleStride;
-            var palette = Palette.For(settings.ResolvedTheme, activity.State);
+            var palette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, activity.State);
             var rectangle = new RectangleF(9, y, BubbleWidth, BubbleHeight);
             using var path = RoundedRectangle(rectangle, 13f);
             using var background = new SolidBrush(palette.BubbleBackground);
@@ -273,7 +283,7 @@ public sealed class PetForm : Form
         }
 
         var tailY = BubbleTop + ((activities.Count - 1) * BubbleStride) + BubbleHeight - 1;
-        var tailPalette = Palette.For(settings.ResolvedTheme, activities[^1].State);
+        var tailPalette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, activities[^1].State);
         using var tailBrush = new SolidBrush(tailPalette.BubbleBackground);
         using var tailBorder = new Pen(tailPalette.Outline, 2f);
         var tail = new[]
@@ -303,7 +313,7 @@ public sealed class PetForm : Form
         graphics.ScaleTransform(RobotDesignScale, RobotDesignScale);
 
         var state = _snapshot.State;
-        var palette = Palette.For(settings.ResolvedTheme, state);
+        var palette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, state);
         var phase = _frame / 5d;
         var bob = state switch
         {
@@ -422,6 +432,13 @@ public sealed class PetForm : Form
         _classicItem.Checked = settings.ResolvedTheme == PetTheme.Classic;
         _neonItem.Checked = settings.ResolvedTheme == PetTheme.Neon;
 
+        var bubbleThemeMenu = (ToolStripMenuItem)_lightBubbleItem.OwnerItem!;
+        bubbleThemeMenu.Text = _localizer["BubbleTheme"];
+        _lightBubbleItem.Text = _localizer["BubbleLight"];
+        _darkBubbleItem.Text = _localizer["BubbleDark"];
+        _lightBubbleItem.Checked = settings.ResolvedBubbleTheme == BubbleColorTheme.Light;
+        _darkBubbleItem.Checked = settings.ResolvedBubbleTheme == BubbleColorTheme.Dark;
+
         var languageMenu = (ToolStripMenuItem)_autoLanguageItem.OwnerItem!;
         languageMenu.Text = _localizer["Language"];
         _autoLanguageItem.Text = _localizer["Auto"];
@@ -436,6 +453,7 @@ public sealed class PetForm : Form
     }
 
     private void SetTheme(PetTheme theme) => UpdateSettings(settings => settings.Theme = theme.ToString());
+    private void SetBubbleTheme(BubbleColorTheme theme) => UpdateSettings(settings => settings.BubbleTheme = theme.ToString());
     private void SetLanguage(UiLanguagePreference language) => UpdateSettings(settings => settings.Language = language.ToString());
 
     private void UpdateSettings(Action<AppSettings> update)
@@ -552,6 +570,18 @@ public sealed class PetForm : Form
         ? $"{(int)duration.TotalHours}:{duration.Minutes:00}:{duration.Seconds:00}"
         : $"{duration.Minutes:00}:{duration.Seconds:00}";
 
+    internal static (Color Background, Color Text, Color Muted) ResolveBubbleColors(BubbleColorTheme theme) => theme switch
+    {
+        BubbleColorTheme.Dark => (
+            Color.FromArgb(24, 28, 38),
+            Color.FromArgb(246, 247, 251),
+            Color.FromArgb(184, 190, 204)),
+        _ => (
+            Color.FromArgb(250, 252, 255),
+            Color.FromArgb(25, 31, 42),
+            Color.FromArgb(76, 88, 107))
+    };
+
     private sealed record Palette(
         Color StateColor,
         Color Outline,
@@ -561,7 +591,7 @@ public sealed class PetForm : Form
         Color Muted,
         int GlowAlpha)
     {
-        public static Palette For(PetTheme theme, ActivityState state)
+        public static Palette For(PetTheme theme, BubbleColorTheme bubbleTheme, ActivityState state)
         {
             var stateColor = state switch
             {
@@ -572,6 +602,7 @@ public sealed class PetForm : Form
                 ActivityState.Stopped => Color.FromArgb(130, 135, 145),
                 _ => Color.FromArgb(68, 160, 255)
             };
+            var bubble = ResolveBubbleColors(bubbleTheme);
 
             if (theme == PetTheme.Neon)
             {
@@ -581,9 +612,9 @@ public sealed class PetForm : Form
                     stateColor,
                     outline,
                     signal,
-                    Color.FromArgb(20, 23, 31),
-                    Color.FromArgb(246, 247, 251),
-                    Color.FromArgb(176, 182, 196),
+                    bubble.Background,
+                    bubble.Text,
+                    bubble.Muted,
                     65);
             }
 
@@ -591,9 +622,9 @@ public sealed class PetForm : Form
                 stateColor,
                 stateColor,
                 stateColor,
-                Color.FromArgb(250, 252, 255),
-                Color.FromArgb(25, 31, 42),
-                Color.FromArgb(76, 88, 107),
+                bubble.Background,
+                bubble.Text,
+                bubble.Muted,
                 28);
         }
     }

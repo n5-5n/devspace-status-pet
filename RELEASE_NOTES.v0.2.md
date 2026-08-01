@@ -1,27 +1,29 @@
-# DevSpace Status Pet v0.2.0-alpha.2
+# DevSpace Status Pet v0.2.0-alpha.3
 
-This alpha fixes the first .NET pet layout and settings issues reported on real high-DPI desktops.
+This alpha adds independent Light and Dark appearance themes for speech bubbles.
 
-## Fixed
+## Added
 
-- Larger default pet and speech bubbles.
-- High-DPI-safe text layout with fixed line regions and ellipsis instead of overlapping text.
-- Immediate live preview for scale, opacity, theme, language, bubble visibility, bubble count, and timing settings.
-- Separate bubbles for parallel workspaces that use the same project.
-- Longer recent-workspace retention so parallel sessions remain visible while waiting for their next local tool call.
+- Light speech bubbles with a bright background and dark text.
+- Dark speech bubbles with a charcoal background and bright text.
+- Independent combinations with either Classic or Neon robot themes.
+- Bubble theme switching from the pet right-click menu.
+- Bubble theme switching from the settings window.
+- Immediate preview and persistence without pressing Save.
+- Japanese and English labels for bubble appearance.
 
-## Included from alpha.1
+## Included from alpha.2
 
+- Larger high-DPI-safe pet and speech-bubble layout.
+- Separate bubbles for parallel workspaces, including multiple chats using the same project.
+- Immediate live preview for size, opacity, robot theme, language, bubble visibility, bubble count, and timing settings.
 - One self-contained `DevSpaceStatusPet.exe` containing the tray monitor, desktop pet, and settings window.
 - No separate .NET Runtime installation or PowerShell execution-policy change required.
-- Existing v0.1 theme, language, bubble, and position settings are reused automatically.
-- Native DevSpace port, log, workspace, and child-process inspection.
-- Classic and Neon themes, Japanese and English, notifications, and stall detection.
-- Portable use, self-installation, startup registration, and self-uninstallation.
+- Existing v0.1 and v0.2 settings are preserved automatically.
 
 ## Install or update
 
-1. Download `DevSpace-Status-Pet-v0.2.0-alpha.2-win-x64.zip`.
+1. Download `DevSpace-Status-Pet-v0.2.0-alpha.3-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `DevSpaceStatusPet.exe`, then select **Install / update v0.2**, or run:
 
@@ -29,7 +31,7 @@ This alpha fixes the first .NET pet layout and settings issues reported on real 
 DevSpaceStatusPet.exe --install
 ```
 
-Existing v0.2 settings are preserved.
+Existing settings are preserved. Older settings without a bubble-theme value default to Light.
 
 ## Important
 

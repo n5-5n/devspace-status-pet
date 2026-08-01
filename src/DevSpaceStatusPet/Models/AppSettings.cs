@@ -6,6 +6,12 @@ public enum PetTheme
     Neon
 }
 
+public enum BubbleColorTheme
+{
+    Light,
+    Dark
+}
+
 public enum UiLanguagePreference
 {
     Auto,
@@ -16,6 +22,7 @@ public enum UiLanguagePreference
 public sealed class AppSettings
 {
     public string Theme { get; set; } = nameof(PetTheme.Classic);
+    public string BubbleTheme { get; set; } = nameof(BubbleColorTheme.Light);
     public bool ShowBubble { get; set; } = true;
     public string Language { get; set; } = nameof(UiLanguagePreference.Auto);
     public double Scale { get; set; } = 1.15;
@@ -28,6 +35,11 @@ public sealed class AppSettings
     public PetTheme ResolvedTheme =>
         Enum.TryParse<PetTheme>(Theme, true, out var value) ? value : PetTheme.Classic;
 
+    public BubbleColorTheme ResolvedBubbleTheme =>
+        Enum.TryParse<BubbleColorTheme>(BubbleTheme, true, out var value)
+            ? value
+            : BubbleColorTheme.Light;
+
     public UiLanguagePreference LanguagePreference =>
         Enum.TryParse<UiLanguagePreference>(Language, true, out var value)
             ? value
@@ -36,6 +48,7 @@ public sealed class AppSettings
     public AppSettings Clone() => new()
     {
         Theme = Theme,
+        BubbleTheme = BubbleTheme,
         ShowBubble = ShowBubble,
         Language = Language,
         Scale = Scale,
@@ -51,6 +64,9 @@ public sealed class AppSettings
         Theme = Enum.TryParse<PetTheme>(Theme, true, out var theme)
             ? theme.ToString()
             : nameof(PetTheme.Classic);
+        BubbleTheme = Enum.TryParse<BubbleColorTheme>(BubbleTheme, true, out var bubbleTheme)
+            ? bubbleTheme.ToString()
+            : nameof(BubbleColorTheme.Light);
         Language = Enum.TryParse<UiLanguagePreference>(Language, true, out var language)
             ? language.ToString()
             : nameof(UiLanguagePreference.Auto);

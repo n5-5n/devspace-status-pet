@@ -11,6 +11,7 @@ public sealed class SettingsForm : Form
     private readonly Localizer _localizer;
     private readonly ComboBox _languageBox = new() { Name = "LanguageInput", DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ComboBox _themeBox = new() { Name = "ThemeInput", DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _bubbleThemeBox = new() { Name = "BubbleThemeInput", DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly CheckBox _showBubble = new() { Name = "ShowBubbleInput" };
     private readonly CheckBox _notifications = new() { Name = "NotificationsInput" };
     private readonly CheckBox _startWithWindows = new() { Name = "StartWithWindowsInput" };
@@ -25,6 +26,7 @@ public sealed class SettingsForm : Form
     private readonly Label _logLabel = new() { AutoSize = true };
     private readonly Label _languageLabel = new() { AutoSize = true };
     private readonly Label _themeLabel = new() { AutoSize = true };
+    private readonly Label _bubbleThemeLabel = new() { AutoSize = true };
     private readonly Label _bubbleLabel = new() { AutoSize = true };
     private readonly Label _scaleLabel = new() { AutoSize = true };
     private readonly Label _opacityLabel = new() { AutoSize = true };
@@ -57,7 +59,7 @@ public sealed class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = true;
-        ClientSize = new Size(600, 590);
+        ClientSize = new Size(600, 625);
         Font = new Font("Segoe UI", 9f);
 
         var root = new TableLayoutPanel
@@ -65,7 +67,7 @@ public sealed class SettingsForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 2,
-            RowCount = 17,
+            RowCount = 18,
             AutoSize = false
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
@@ -78,15 +80,16 @@ public sealed class SettingsForm : Form
         AddRow(root, 3, _logLabel, _logValue);
         AddRow(root, 4, _languageLabel, _languageBox);
         AddRow(root, 5, _themeLabel, _themeBox);
-        AddRow(root, 6, _bubbleLabel, _showBubble);
-        AddRow(root, 7, _scaleLabel, _scale);
-        AddRow(root, 8, _opacityLabel, _opacity);
-        AddRow(root, 9, _quietLabel, _quietSeconds);
-        AddRow(root, 10, _stallLabel, _stallMinutes);
-        AddRow(root, 11, _maxBubblesLabel, _maxBubbles);
-        AddRow(root, 12, _notificationsLabel, _notifications);
-        AddRow(root, 13, _startupLabel, _startWithWindows);
-        AddRow(root, 14, _versionLabel, _versionValue);
+        AddRow(root, 6, _bubbleThemeLabel, _bubbleThemeBox);
+        AddRow(root, 7, _bubbleLabel, _showBubble);
+        AddRow(root, 8, _scaleLabel, _scale);
+        AddRow(root, 9, _opacityLabel, _opacity);
+        AddRow(root, 10, _quietLabel, _quietSeconds);
+        AddRow(root, 11, _stallLabel, _stallMinutes);
+        AddRow(root, 12, _maxBubblesLabel, _maxBubbles);
+        AddRow(root, 13, _notificationsLabel, _notifications);
+        AddRow(root, 14, _startupLabel, _startWithWindows);
+        AddRow(root, 15, _versionLabel, _versionValue);
 
         var buttons = new FlowLayoutPanel
         {
@@ -96,7 +99,7 @@ public sealed class SettingsForm : Form
             WrapContents = false
         };
         buttons.Controls.AddRange([_closeButton, _saveButton, _openLogsButton]);
-        root.Controls.Add(buttons, 0, 16);
+        root.Controls.Add(buttons, 0, 17);
         root.SetColumnSpan(buttons, 2);
 
         _saveButton.Click += (_, _) => SaveSettings(showConfirmation: true);
@@ -164,6 +167,7 @@ public sealed class SettingsForm : Form
         _logLabel.Text = _localizer.Get("Log", string.Empty).TrimEnd(' ', ':', '：');
         _languageLabel.Text = _localizer["Language"];
         _themeLabel.Text = _localizer["Theme"];
+        _bubbleThemeLabel.Text = _localizer["BubbleTheme"];
         _bubbleLabel.Text = _localizer["ShowBubble"];
         _scaleLabel.Text = _localizer["Scale"];
         _opacityLabel.Text = _localizer["Opacity"];
@@ -202,6 +206,9 @@ public sealed class SettingsForm : Form
         settings.Theme = (_themeBox.SelectedItem is Choice<PetTheme> theme
             ? theme.Value
             : PetTheme.Classic).ToString();
+        settings.BubbleTheme = (_bubbleThemeBox.SelectedItem is Choice<BubbleColorTheme> bubbleTheme
+            ? bubbleTheme.Value
+            : BubbleColorTheme.Light).ToString();
         settings.ShowBubble = _showBubble.Checked;
         settings.Scale = (double)_scale.Value / 100d;
         settings.Opacity = (double)_opacity.Value / 100d;
@@ -222,6 +229,7 @@ public sealed class SettingsForm : Form
     {
         _languageBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
         _themeBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _bubbleThemeBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
         _showBubble.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
         _scale.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
         _opacity.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
@@ -256,6 +264,17 @@ public sealed class SettingsForm : Form
             .OfType<Choice<PetTheme>>()
             .First(choice => choice.Value == settings.ResolvedTheme);
         _themeBox.EndUpdate();
+
+        _bubbleThemeBox.BeginUpdate();
+        _bubbleThemeBox.Items.Clear();
+        _bubbleThemeBox.Items.AddRange([
+            new Choice<BubbleColorTheme>(BubbleColorTheme.Light, _localizer["BubbleLight"]),
+            new Choice<BubbleColorTheme>(BubbleColorTheme.Dark, _localizer["BubbleDark"])
+        ]);
+        _bubbleThemeBox.SelectedItem = _bubbleThemeBox.Items
+            .OfType<Choice<BubbleColorTheme>>()
+            .First(choice => choice.Value == settings.ResolvedBubbleTheme);
+        _bubbleThemeBox.EndUpdate();
     }
 
     private static void AddRow(TableLayoutPanel panel, int row, Control label, Control value)
