@@ -201,6 +201,45 @@ try {
         throw "Bubble theme was not restored. Expected $originalBubbleTheme, got $($restoredSettings.BubbleTheme)."
     }
 
+    $bubbleStyleCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+        'BubbleStyleInput')
+    $bubbleStyleInput = $settingsWindow.FindFirst(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        $bubbleStyleCondition)
+    if ($null -eq $bubbleStyleInput) {
+        throw 'BubbleStyleInput was not found through UI Automation.'
+    }
+
+    $styleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    $originalBubbleStyle = if ($styleSettings.PSObject.Properties.Name -contains 'BubbleStyle') {
+        [string]$styleSettings.BubbleStyle
+    }
+    else {
+        'Speech'
+    }
+    $testBubbleStyle = if ($originalBubbleStyle -eq 'MonitorCard') { 'Speech' } else { 'MonitorCard' }
+    $styleBefore = $petWindow.Current.BoundingRectangle
+    $bubbleStyleInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($(if ($testBubbleStyle -eq 'MonitorCard') { '{END}' } else { '{HOME}' }))
+    Start-Sleep -Seconds 2
+    $styleAfter = $petWindow.Current.BoundingRectangle
+    $changedStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$changedStyleSettings.BubbleStyle -ne $testBubbleStyle) {
+        throw "Bubble design was not saved immediately. Expected $testBubbleStyle, got $($changedStyleSettings.BubbleStyle)."
+    }
+    if ([Math]::Abs($styleAfter.Height - $styleBefore.Height) -lt 20) {
+        throw "Pet height did not change after bubble-design switch. Before=$($styleBefore.Height), After=$($styleAfter.Height)."
+    }
+
+    $bubbleStyleInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($(if ($originalBubbleStyle -eq 'MonitorCard') { '{END}' } else { '{HOME}' }))
+    Start-Sleep -Seconds 2
+    $restoredStyleSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$restoredStyleSettings.BubbleStyle -ne $originalBubbleStyle) {
+        throw "Bubble design was not restored. Expected $originalBubbleStyle, got $($restoredStyleSettings.BubbleStyle)."
+    }
+
     [pscustomobject]@{
         OriginalScale = $original
         TestScale = $testValue
@@ -214,6 +253,11 @@ try {
         BubbleThemeBefore = $originalBubbleTheme
         BubbleThemeTest = $testBubbleTheme
         BubbleThemeRestored = [string]$restoredSettings.BubbleTheme
+        BubbleStyleBefore = $originalBubbleStyle
+        BubbleStyleTest = $testBubbleStyle
+        BubbleStyleHeightBefore = [Math]::Round($styleBefore.Height, 1)
+        BubbleStyleHeightAfter = [Math]::Round($styleAfter.Height, 1)
+        BubbleStyleRestored = [string]$restoredStyleSettings.BubbleStyle
     } | Format-List
 
     Write-Host '[OK] Live settings UI smoke test' -ForegroundColor Green

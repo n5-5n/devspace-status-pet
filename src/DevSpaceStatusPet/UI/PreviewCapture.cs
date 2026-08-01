@@ -16,8 +16,9 @@ internal static class PreviewCapture
         Directory.CreateDirectory(outputDirectory);
         var snapshot = CreateSampleSnapshot();
 
-        CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, "preview-classic.png");
-        CapturePetPreview(outputDirectory, snapshot, PetTheme.Neon, "preview-neon.png");
+        CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, BubbleVisualStyle.Speech, "preview-classic.png");
+        CapturePetPreview(outputDirectory, snapshot, PetTheme.Neon, BubbleVisualStyle.Speech, "preview-neon.png");
+        CapturePetPreview(outputDirectory, snapshot, PetTheme.Classic, BubbleVisualStyle.MonitorCard, "preview-monitor-card.png");
         CaptureMenuPreview(outputDirectory, snapshot);
         CaptureSettingsPreview(outputDirectory, snapshot);
         CaptureUpdaterPreview(outputDirectory);
@@ -27,9 +28,10 @@ internal static class PreviewCapture
         string outputDirectory,
         DevSpaceSnapshot snapshot,
         PetTheme theme,
+        BubbleVisualStyle bubbleStyle,
         string fileName)
     {
-        var settings = CreatePreviewSettings(theme);
+        var settings = CreatePreviewSettings(theme, bubbleStyle);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
         using var pet = new PetForm(store, new PositionStore(null), localizer);
@@ -46,7 +48,7 @@ internal static class PreviewCapture
 
     private static void CaptureMenuPreview(string outputDirectory, DevSpaceSnapshot snapshot)
     {
-        var settings = CreatePreviewSettings(PetTheme.Classic);
+        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCard);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
         using var pet = new PetForm(store, new PositionStore(null), localizer);
@@ -81,7 +83,7 @@ internal static class PreviewCapture
 
     private static void CaptureSettingsPreview(string outputDirectory, DevSpaceSnapshot snapshot)
     {
-        var settings = CreatePreviewSettings(PetTheme.Classic);
+        var settings = CreatePreviewSettings(PetTheme.Classic, BubbleVisualStyle.MonitorCard);
         var store = new SettingsStore(settings);
         var localizer = new Localizer(() => store.Current);
         using var form = new SettingsForm(store, localizer, snapshot)
@@ -189,10 +191,13 @@ internal static class PreviewCapture
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
     }
 
-    private static AppSettings CreatePreviewSettings(PetTheme theme) => new()
+    private static AppSettings CreatePreviewSettings(
+        PetTheme theme,
+        BubbleVisualStyle bubbleStyle = BubbleVisualStyle.Speech) => new()
     {
         Theme = theme.ToString(),
         BubbleTheme = BubbleColorTheme.Dark.ToString(),
+        BubbleStyle = bubbleStyle.ToString(),
         Language = UiLanguagePreference.Japanese.ToString(),
         ShowBubble = true,
         Scale = 1.25,

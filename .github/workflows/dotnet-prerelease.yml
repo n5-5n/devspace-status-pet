@@ -3,7 +3,7 @@ name: Publish .NET release
 on:
   push:
     tags:
-      - 'v0.2.*'
+      - 'v0.*.*'
 
 permissions:
   contents: write
@@ -53,7 +53,7 @@ jobs:
             'release', 'create', "${{ github.ref_name }}", $zip, $hash,
             '--verify-tag',
             '--title', "DevSpace Status Pet v$version",
-            '--notes-file', 'RELEASE_NOTES.v0.2.md'
+            '--notes-file', 'RELEASE_NOTES.md'
           )
           if ($version.Contains('-')) {
             $arguments += '--prerelease'

@@ -5,6 +5,7 @@
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
 > **安定版：v0.2.1（C# / .NET 8・単一EXE）**<br>
+> **開発版：v0.3.0-alpha.1（モニターカード追加）**<br>
 > 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
 ## 主な機能
@@ -18,6 +19,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 - 完了後の「次の処理待ち」吹き出しを設定時間で自動削除
 - クラシック／ネオンのロボットテーマ
 - ライト／ダークの吹き出しテーマ
+- 標準吹き出し／情報密度の高いモニターカードを即時切替
 - ダーク化されたタスクトレイメニュー、ペットメニュー、設定画面
 - 日本語／English／OS言語自動選択
 - サイズ、透明度、通知時間、停滞判定、吹き出し数を即時変更
@@ -28,9 +30,9 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## プレビュー
 
-| クラシック＋並列作業 | ネオン＋並列作業 |
-|---|---|
-| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+| 標準・クラシック | 標準・ネオン | モニターカード |
+|---|---|---|
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) | ![Monitor card preview](docs/preview-monitor-card.png) |
 
 | ダーク設定画面 | 安全な更新画面 |
 |---|---|
@@ -51,7 +53,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.2.1-win-x64.zip`をダウンロード
 2. ZIPを展開
 3. `DevSpaceStatusPet.exe`を実行
-4. 右クリックメニューから**v0.2をインストール／更新**を選択
+4. 右クリックメニューから**インストール／更新**を選択
 
 コマンドでもインストールできます。
 
@@ -65,7 +67,7 @@ DevSpaceStatusPet.exe --install
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-既存のv0.1／v0.2 alpha設定は自動的に引き継がれます。
+既存のv0.1／v0.2設定は自動的に引き継がれます。v0.3開発版でも同じ設定ファイルを使用します。
 
 ## ポータブル実行
 
@@ -113,6 +115,7 @@ VideoShrink
 - 表示言語：自動／日本語／English
 - ロボットテーマ：クラシック／ネオン
 - 吹き出しテーマ：ライト／ダーク
+- 吹き出しデザイン：標準吹き出し／モニターカード
 - ペットサイズ、透明度
 - 吹き出し表示と最大件数
 - 完了通知までの待機秒数
@@ -175,7 +178,7 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 .\src\DevSpaceStatusPet\bin\Release\net8.0-windows10.0.17763.0\win-x64\DevSpaceStatusPet.exe --capture-previews docs
 ```
 
-タグ`v0.2.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。
+タグ`v0.x.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。
 
 ## 旧v0.1版
 

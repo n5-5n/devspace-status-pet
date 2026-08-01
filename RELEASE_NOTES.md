@@ -1,30 +1,29 @@
-# DevSpace Status Pet v0.1.0
+# DevSpace Status Pet v0.3.0-alpha.1
 
-The first public release of DevSpace Status Pet.
+v0.3最初の試用版です。従来の吹き出しを残したまま、AI使用量モニターのような情報カード型デザインを追加しました。
 
-## Highlights
+## モニターカード
 
-- See whether DevSpace is working, waiting, stalled, failed, or stopped from the Windows tray.
-- Keep an animated desktop pet on screen without adding a taskbar button.
-- Display separate bubbles for parallel projects and workspaces.
-- Choose Classic or Neon styling.
-- Switch between Japanese, English, or automatic OS-language selection.
-- Configure startup, language, theme, and bubbles from a settings window.
-- Install or remove the app with one click.
+- 新しい吹き出しデザイン「モニターカード」を追加
+- プロジェクト名、現在の処理、状態、経過時間を1枚のカードへ整理
+- 経過時間を右上へ大きく表示
+- 状態色のアクセントライン、状態バッジ、アクティビティメーターを追加
+- 複数の並列ワークスペースをカードとして縦に表示
+- カードとペットを細いコネクターで接続
+- Classic／NeonとLight／Darkの全組み合わせに対応
 
-## Install
+## 選択と互換性
 
-1. Download `DevSpace-Status-Pet-v0.1.0.zip`.
-2. Extract the ZIP.
-3. Run `Install.cmd`.
-4. Start `devspace serve` if DevSpace is not already running.
+- 設定画面の「吹き出しデザイン」から即時切替
+- ペットの右クリックメニューからも切替可能
+- 既存ユーザーは従来の「標準吹き出し」のまま移行
+- v0.2.1までの設定をそのまま保持
 
-The installer copies the app to `%LOCALAPPDATA%\DevSpaceStatusPet` and creates desktop shortcuts.
+## その他
 
-## Requirements
+- GitHubプレビューへモニターカード画像を追加
+- インストール／アンインストールの表示から固定のv0.2表記を削除
+- デスクトップショートカット名を「DevSpace Status Pet」へ統一
+- v0.3タグを公開できるようGitHub Actionsを更新
 
-- Windows 10 or Windows 11
-- Windows PowerShell 5.1
-- `@waishnav/devspace`
-
-Verify the downloaded ZIP with the included `.sha256` file when needed.
+これはPrereleaseです。まず普段の並列作業で表示サイズ、情報量、見やすさを確認してからv0.3.0正式版へ昇格します。
