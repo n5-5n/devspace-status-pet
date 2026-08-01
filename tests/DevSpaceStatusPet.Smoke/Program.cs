@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Windows.Forms;
 using DevSpaceStatusPet.Models;
 using DevSpaceStatusPet.Services;
 using DevSpaceStatusPet.UI;
@@ -42,6 +43,28 @@ var lightBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Light);
 var darkBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Dark);
 Check(lightBubbleColors.Background != darkBubbleColors.Background, "light and dark bubble palettes differ");
 Check(darkBubbleColors.Text.GetBrightness() > darkBubbleColors.Background.GetBrightness(), "dark bubble text contrast");
+Check(DarkUiTheme.Foreground.GetBrightness() > DarkUiTheme.WindowBackground.GetBrightness(), "dark settings contrast");
+Check(DarkUiTheme.MenuSelection != DarkUiTheme.MenuBackground, "dark menu selection contrast");
+using (var darkMenu = new ContextMenuStrip())
+{
+    var submenu = new ToolStripMenuItem("Parent");
+    submenu.DropDownItems.Add(new ToolStripMenuItem("Child"));
+    darkMenu.Items.Add(submenu);
+    DarkUiTheme.ApplyMenu(darkMenu);
+    Check(darkMenu.BackColor == DarkUiTheme.MenuBackground, "dark context menu background");
+    Check(submenu.DropDown.BackColor == DarkUiTheme.MenuBackground, "dark submenu background");
+}
+using (var darkForm = new Form())
+{
+    var input = new ComboBox();
+    var button = new Button();
+    darkForm.Controls.Add(input);
+    darkForm.Controls.Add(button);
+    DarkUiTheme.ApplyWindow(darkForm);
+    Check(darkForm.BackColor == DarkUiTheme.WindowBackground, "dark settings window background");
+    Check(input.BackColor == DarkUiTheme.InputBackground, "dark settings input background");
+    Check(button.BackColor == DarkUiTheme.ButtonBackground, "dark settings button background");
+}
 
 var current = new AppSettings { Language = "English" };
 var localizer = new Localizer(() => current);

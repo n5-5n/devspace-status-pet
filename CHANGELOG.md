@@ -2,6 +2,15 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.2.0-alpha.6] - 2026-08-01
+
+### Added
+
+- Unified dark styling for the tray context menu and pet context menu, including nested menus, check marks, selection states, and separators.
+- Dark settings window styling for labels, panels, combo boxes, numeric inputs, check boxes, and buttons.
+- Immersive dark title-bar support on compatible Windows 10 and Windows 11 builds.
+- Automated contrast and control-theme smoke tests for the new application UI palette.
+
 ## [0.2.0-alpha.5] - 2026-08-01
 
 ### Fixed
