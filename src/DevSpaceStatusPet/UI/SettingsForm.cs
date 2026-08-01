@@ -9,16 +9,16 @@ public sealed class SettingsForm : Form
 {
     private readonly SettingsStore _settingsStore;
     private readonly Localizer _localizer;
-    private readonly ComboBox _languageBox = new() { DropDownStyle = ComboBoxStyle.DropDownList };
-    private readonly ComboBox _themeBox = new() { DropDownStyle = ComboBoxStyle.DropDownList };
-    private readonly CheckBox _showBubble = new();
-    private readonly CheckBox _notifications = new();
-    private readonly CheckBox _startWithWindows = new();
-    private readonly NumericUpDown _scale = new() { Minimum = 60, Maximum = 180, Increment = 5 };
-    private readonly NumericUpDown _opacity = new() { Minimum = 50, Maximum = 100, Increment = 5 };
-    private readonly NumericUpDown _quietSeconds = new() { Minimum = 10, Maximum = 300 };
-    private readonly NumericUpDown _stallMinutes = new() { Minimum = 1, Maximum = 240 };
-    private readonly NumericUpDown _maxBubbles = new() { Minimum = 1, Maximum = 8 };
+    private readonly ComboBox _languageBox = new() { Name = "LanguageInput", DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _themeBox = new() { Name = "ThemeInput", DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly CheckBox _showBubble = new() { Name = "ShowBubbleInput" };
+    private readonly CheckBox _notifications = new() { Name = "NotificationsInput" };
+    private readonly CheckBox _startWithWindows = new() { Name = "StartWithWindowsInput" };
+    private readonly NumericUpDown _scale = new() { Name = "ScaleInput", Minimum = 60, Maximum = 250, Increment = 5 };
+    private readonly NumericUpDown _opacity = new() { Name = "OpacityInput", Minimum = 50, Maximum = 100, Increment = 5 };
+    private readonly NumericUpDown _quietSeconds = new() { Name = "QuietSecondsInput", Minimum = 10, Maximum = 300 };
+    private readonly NumericUpDown _stallMinutes = new() { Name = "StallMinutesInput", Minimum = 1, Maximum = 240 };
+    private readonly NumericUpDown _maxBubbles = new() { Name = "MaxBubblesInput", Minimum = 1, Maximum = 8 };
     private readonly Label _statusLabel = new() { AutoSize = true };
     private readonly Label _portLabel = new() { AutoSize = true };
     private readonly Label _configLabel = new() { AutoSize = true };
@@ -43,6 +43,7 @@ public sealed class SettingsForm : Form
     private readonly Button _closeButton = new();
     private readonly Button _openLogsButton = new();
     private DevSpaceSnapshot _snapshot;
+    private bool _reloadingControls;
 
     public SettingsForm(SettingsStore settingsStore, Localizer localizer, DevSpaceSnapshot snapshot)
     {
@@ -98,7 +99,7 @@ public sealed class SettingsForm : Form
         root.Controls.Add(buttons, 0, 16);
         root.SetColumnSpan(buttons, 2);
 
-        _saveButton.Click += (_, _) => SaveSettings();
+        _saveButton.Click += (_, _) => SaveSettings(showConfirmation: true);
         _closeButton.Click += (_, _) => Hide();
         _openLogsButton.Click += (_, _) =>
         {
@@ -115,6 +116,7 @@ public sealed class SettingsForm : Form
         };
         _settingsStore.Changed += (_, _) => Reload();
         Reload();
+        WireLivePreview();
     }
 
     public void UpdateSnapshot(DevSpaceSnapshot snapshot)
@@ -132,17 +134,25 @@ public sealed class SettingsForm : Form
 
     private void Reload()
     {
-        var settings = _settingsStore.Current;
-        RefreshChoices(settings);
-        _showBubble.Checked = settings.ShowBubble;
-        _scale.Value = (decimal)(settings.Scale * 100);
-        _opacity.Value = (decimal)(settings.Opacity * 100);
-        _quietSeconds.Value = settings.CompletionQuietSeconds;
-        _stallMinutes.Value = settings.StallMinutes;
-        _maxBubbles.Value = settings.MaxBubbles;
-        _notifications.Checked = settings.NotificationsEnabled;
-        _startWithWindows.Checked = StartupManager.IsEnabled();
-        RefreshText();
+        _reloadingControls = true;
+        try
+        {
+            var settings = _settingsStore.Current;
+            RefreshChoices(settings);
+            _showBubble.Checked = settings.ShowBubble;
+            _scale.Value = (decimal)(settings.Scale * 100);
+            _opacity.Value = (decimal)(settings.Opacity * 100);
+            _quietSeconds.Value = settings.CompletionQuietSeconds;
+            _stallMinutes.Value = settings.StallMinutes;
+            _maxBubbles.Value = settings.MaxBubbles;
+            _notifications.Checked = settings.NotificationsEnabled;
+            _startWithWindows.Checked = StartupManager.IsEnabled();
+            RefreshText();
+        }
+        finally
+        {
+            _reloadingControls = false;
+        }
     }
 
     private void RefreshText()
@@ -178,8 +188,13 @@ public sealed class SettingsForm : Form
         _versionValue.Text = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.2.0";
     }
 
-    private void SaveSettings()
+    private void SaveSettings(bool showConfirmation)
     {
+        if (_reloadingControls)
+        {
+            return;
+        }
+
         var settings = _settingsStore.Current;
         settings.Language = (_languageBox.SelectedItem is Choice<UiLanguagePreference> language
             ? language.Value
@@ -197,7 +212,24 @@ public sealed class SettingsForm : Form
         _settingsStore.Save(settings);
         StartupManager.SetEnabled(_startWithWindows.Checked);
         RefreshText();
-        MessageBox.Show(this, _localizer["Saved"], _localizer["AppName"], MessageBoxButtons.OK, MessageBoxIcon.Information);
+        if (showConfirmation)
+        {
+            MessageBox.Show(this, _localizer["Saved"], _localizer["AppName"], MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    private void WireLivePreview()
+    {
+        _languageBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _themeBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _showBubble.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _scale.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _opacity.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _quietSeconds.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _stallMinutes.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _maxBubbles.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _notifications.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _startWithWindows.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
     }
 
     private void RefreshChoices(AppSettings settings)
