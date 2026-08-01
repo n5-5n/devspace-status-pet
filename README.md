@@ -4,8 +4,7 @@
 
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
-> **安定版：v0.1.2（C# / .NET 8・単一EXE）**<br>
-> **開発版：v0.1.3-alpha.3（実機とプレビューの描画統一）**<br>
+> **安定版：v0.1.3（C# / .NET 8・単一EXE）**<br>
 > 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
 ## 主な機能
@@ -55,7 +54,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## インストール
 
-1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.1.2-win-x64.zip`をダウンロード
+1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.1.3-win-x64.zip`をダウンロード
 2. ZIPを展開
 3. `DevSpaceStatusPet.exe`を実行
 4. 右クリックメニューから**インストール／更新**を選択
@@ -102,11 +101,11 @@ DevSpaceStatusPet.exe --settings
 ワークスペースIDごとに活動を分離するため、同じプロジェクトを複数チャットで操作していても別々の吹き出しとして表示されます。
 
 ```text
-VideoShrink
+Aurora Desktop
 テスト実行
 作業中  03:21
 
-VideoShrink
+Aurora Desktop
 ファイル編集
 次の処理待ち  00:08
 ```

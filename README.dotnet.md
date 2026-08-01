@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.2
+# DevSpace Status Pet v0.1.3
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.2はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面、更新機能を1つの自己完結型EXEへ統合しています。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.3はC# / .NET 8で作られた正式版で、モニターカード、ピクセル単位アルファ透過、安全な更新機能を1つの自己完結型EXEへ統合しています。
 
 ## 必要環境
 

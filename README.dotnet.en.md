@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.2
+# DevSpace Status Pet v0.1.3
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.2 is the stable C# / .NET 8 release and combines the tray monitor, pet, settings window, and updater in one self-contained executable.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.3 is the stable C# / .NET 8 release and combines Monitor Cards, per-pixel alpha rendering, settings, and safe updates in one self-contained executable.
 
 ## Requirements
 
