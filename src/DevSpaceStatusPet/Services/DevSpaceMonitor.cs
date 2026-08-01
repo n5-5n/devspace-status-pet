@@ -59,7 +59,7 @@ public sealed class DevSpaceMonitor
             var recent = BuildRecentActivities(
                 log.RecentTools,
                 active,
-                Math.Max(settings.CompletionQuietSeconds, 120),
+                Math.Max(settings.CompletionQuietSeconds, 300),
                 now);
             var activities = active.Concat(recent)
                 .OrderByDescending(activity => activity.State == ActivityState.Working)
@@ -104,13 +104,35 @@ public sealed class DevSpaceMonitor
         IReadOnlyList<string> allowedRoots,
         DateTimeOffset now)
     {
-        var unusedTools = new Queue<ToolEvent>(recentTools.OrderByDescending(item => item.Timestamp));
+        var unusedTools = recentTools
+            .OrderByDescending(item => item.Timestamp)
+            .ToList();
         var result = new List<DevSpaceActivity>();
 
         foreach (var group in groups)
         {
-            ToolEvent? fallback = unusedTools.Count > 0 ? unusedTools.Dequeue() : null;
-            var project = InferProjectFromProcesses(group.Processes, allowedRoots) ?? fallback?.ProjectName ?? "Unknown";
+            var inferredProject = InferProjectFromProcesses(group.Processes, allowedRoots);
+            var fallbackIndex = -1;
+            if (!string.IsNullOrWhiteSpace(inferredProject))
+            {
+                fallbackIndex = unusedTools.FindIndex(tool =>
+                    tool.ProjectName.Equals(inferredProject, StringComparison.OrdinalIgnoreCase));
+            }
+            if (fallbackIndex < 0 && unusedTools.Count > 0)
+            {
+                fallbackIndex = 0;
+            }
+
+            ToolEvent? fallback = null;
+            if (fallbackIndex >= 0)
+            {
+                fallback = unusedTools[fallbackIndex];
+                unusedTools.RemoveAt(fallbackIndex);
+            }
+
+            var project = !string.IsNullOrWhiteSpace(inferredProject)
+                ? inferredProject
+                : fallback?.ProjectName ?? "DevSpace";
             var (operation, detail) = ClassifyOperation(group.Processes);
             var startedAt = group.Processes
                 .Where(process => process.StartedAt.HasValue)
@@ -126,7 +148,7 @@ public sealed class DevSpaceMonitor
                 detail,
                 startedAt,
                 now - startedAt,
-                project.Equals("Unknown", StringComparison.OrdinalIgnoreCase),
+                string.IsNullOrWhiteSpace(inferredProject),
                 true,
                 fallback?.WorkspaceId));
         }

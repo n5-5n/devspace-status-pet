@@ -1,29 +1,29 @@
-# DevSpace Status Pet v0.2.0-alpha.3
+# DevSpace Status Pet v0.2.0-alpha.4
 
-This alpha adds independent Light and Dark appearance themes for speech bubbles.
+This alpha fixes workspace identification and missing parallel bubbles on real DevSpace logs.
 
-## Added
+## Fixed
 
-- Light speech bubbles with a bright background and dark text.
-- Dark speech bubbles with a charcoal background and bright text.
-- Independent combinations with either Classic or Neon robot themes.
-- Bubble theme switching from the pet right-click menu.
-- Bubble theme switching from the settings window.
-- Immediate preview and persistence without pressing Save.
-- Japanese and English labels for bubble appearance.
+- Correctly detects UTF-16 LE DevSpace logs even after `serve.log` grows beyond the 4 MB tail window.
+- Restores workspace-to-project mappings from historical `open_workspace` entries at startup.
+- Keeps known project names when later `bash` calls contain no path information.
+- Shows separate bubbles for concurrent workspaces instead of collapsing to one local process.
+- Keeps recent parallel workspace bubbles for up to five minutes.
+- Uses a stable `Workspace xxxxxxxx` label instead of displaying `Unknown` when no project path can be recovered.
 
-## Included from alpha.2
+## Included from earlier v0.2 alphas
 
-- Larger high-DPI-safe pet and speech-bubble layout.
-- Separate bubbles for parallel workspaces, including multiple chats using the same project.
-- Immediate live preview for size, opacity, robot theme, language, bubble visibility, bubble count, and timing settings.
 - One self-contained `DevSpaceStatusPet.exe` containing the tray monitor, desktop pet, and settings window.
-- No separate .NET Runtime installation or PowerShell execution-policy change required.
-- Existing v0.1 and v0.2 settings are preserved automatically.
+- Larger high-DPI-safe pet and speech-bubble layout.
+- Immediate settings preview and persistence.
+- Separate Light and Dark speech-bubble themes.
+- Classic and Neon robot themes.
+- Japanese and English UI.
+- Portable use, self-installation, startup registration, and self-uninstallation.
 
 ## Install or update
 
-1. Download `DevSpace-Status-Pet-v0.2.0-alpha.3-win-x64.zip`.
+1. Download `DevSpace-Status-Pet-v0.2.0-alpha.4-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `DevSpaceStatusPet.exe`, then select **Install / update v0.2**, or run:
 
@@ -31,7 +31,7 @@ This alpha adds independent Light and Dark appearance themes for speech bubbles.
 DevSpaceStatusPet.exe --install
 ```
 
-Existing settings are preserved. Older settings without a bubble-theme value default to Light.
+Existing v0.2 settings are preserved.
 
 ## Important
 
