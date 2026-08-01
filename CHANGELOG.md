@@ -2,6 +2,25 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.4-alpha.1] - 2026-08-01
+
+### Added
+
+- Added a rotating `runtime.log` for startup, shutdown, power/display events, rendering failures, and self-recovery.
+- Added a tray command to show and recover the pet window.
+- Added display-settings and power-resume recovery handlers with a delayed second recovery pass.
+- Added a five-second visibility watchdog and an animation-level render watchdog.
+- Replaced the remaining legacy SVG preview labels with fictional sample projects.
+
+### Fixed
+
+- Recovers a layered pet window that becomes hidden, loses TopMost, is minimized, or moves outside all monitor working areas.
+- Retries rendering after `UpdateLayeredWindow` failures by recreating the window handle.
+
+### Tested
+
+- Added off-screen recovery, secondary-monitor preservation, and recovery-menu localization regression tests.
+
 ## [0.1.3] - 2026-08-01
 
 ### Stable release

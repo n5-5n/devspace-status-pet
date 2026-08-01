@@ -272,6 +272,9 @@ var localizer = new Localizer(() => current);
 Check(localizer.State(ActivityState.Working) == "Working", "English localization");
 current.Language = "Japanese";
 Check(localizer.State(ActivityState.Working) == "作業中", "Japanese localization");
+Check(localizer["ShowRecoverPet"] == "ペットを表示／復旧", "pet recovery menu localization");
+Check(AppPaths.RuntimeLogPath.EndsWith("runtime.log", StringComparison.OrdinalIgnoreCase), "runtime diagnostics path");
+Check(!LayeredWindowRenderer.IsCloaked(IntPtr.Zero), "zero-handle cloak check");
 
 var tempRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-Smoke-{Environment.ProcessId}");
 Directory.CreateDirectory(tempRoot);
@@ -447,6 +450,15 @@ Check(largeLayout.Width > defaultLayout.Width && largeLayout.Height > defaultLay
 Check(parallelLayout.Height > defaultLayout.Height + 150, "parallel bubbles expand window");
 Check(neonMonitorCardLayout.Height > parallelLayout.Height, "neon monitor cards use expanded information layout");
 Check(cleanMonitorCardLayout == neonMonitorCardLayout, "clean monitor cards preserve monitor layout");
+var workingAreas = new[]
+{
+    new Rectangle(0, 0, 1920, 1040),
+    new Rectangle(1920, 200, 1280, 1024)
+};
+var recoveredPosition = PetForm.ClampPosition(new Rectangle(5000, 3000, 300, 400), workingAreas);
+Check(recoveredPosition == new Point(1620, 640), "off-screen pet position recovery");
+var secondaryPosition = PetForm.ClampPosition(new Rectangle(2200, 400, 300, 400), workingAreas);
+Check(secondaryPosition == new Point(2200, 400), "visible secondary-monitor position preservation");
 var cleanCardBackground = PetForm.ResolveCleanCardBackground(BubbleColorTheme.Dark);
 var cleanCardBorder = PetForm.ResolveCleanCardBorder(BubbleColorTheme.Dark);
 Check(cleanCardBackground != cleanCardBorder, "clean monitor-card single border contrast");

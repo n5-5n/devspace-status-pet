@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Win32;
 using DevSpaceStatusPet.Models;
 using DevSpaceStatusPet.Services;
 
@@ -20,6 +21,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _elapsedItem = new() { Enabled = false };
     private readonly ToolStripMenuItem _refreshItem = new();
     private readonly ToolStripMenuItem _checkUpdatesItem = new();
+    private readonly ToolStripMenuItem _showPetItem = new();
     private readonly ToolStripMenuItem _settingsItem = new();
     private readonly ToolStripMenuItem _openLogItem = new();
     private readonly ToolStripMenuItem _openFolderItem = new();
@@ -42,6 +44,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private bool _stallNotificationShown;
     private Action? _balloonClickAction;
     private ActivityState _previousState = ActivityState.Idle;
+    private int _healthTickCount;
 
     public TrayApplicationContext(bool showSettingsOnStart = false)
     {
@@ -73,6 +76,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             new ToolStripSeparator(),
             _refreshItem,
             _checkUpdatesItem,
+            _showPetItem,
             _settingsItem,
             _openLogItem,
             _openFolderItem,
@@ -100,6 +104,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             }
         };
         _settingsForm.UpdateCheckRequested += async (_, _) => await CheckForUpdatesAsync(interactive: true);
+        _showPetItem.Click += (_, _) => _petForm.RecoverVisibility("tray-command", recreateHandle: true);
         _settingsItem.Click += (_, _) => ShowSettings();
         _openLogItem.Click += (_, _) => OpenLog();
         _openFolderItem.Click += (_, _) => OpenFolder();
@@ -135,7 +140,19 @@ public sealed class TrayApplicationContext : ApplicationContext
         };
 
         _timer = new System.Windows.Forms.Timer { Interval = 1000 };
-        _timer.Tick += async (_, _) => await RefreshAsync();
+        _timer.Tick += async (_, _) =>
+        {
+            await RefreshAsync();
+            _healthTickCount++;
+            if (_healthTickCount >= 5)
+            {
+                _healthTickCount = 0;
+                _petForm.VerifyVisibility("tray-watchdog");
+            }
+        };
+
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         UpdateStaticText();
         _petForm.Show();
@@ -144,6 +161,9 @@ public sealed class TrayApplicationContext : ApplicationContext
             ShowSettings();
         }
         _timer.Start();
+        RuntimeLogger.Write(
+            "tray-context-ready",
+            $"petBounds={_petForm.Bounds}; screens={Screen.AllScreens.Length}");
         _ = RefreshAsync();
         if (_settingsStore.Current.CheckUpdatesOnStartup)
         {
@@ -166,6 +186,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
         catch (Exception exception)
         {
+            RuntimeLogger.Write(exception, "RefreshAsync");
             CrashLogger.Write(exception, "RefreshAsync");
         }
         finally
@@ -287,6 +308,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _checkUpdatesItem.Text = _availableUpdate is null
             ? _localizer["CheckUpdates"]
             : _localizer.Get("UpdateAvailableMenu", _availableUpdate.Version);
+        _showPetItem.Text = _localizer["ShowRecoverPet"];
         _settingsItem.Text = _localizer["Settings"];
         _openLogItem.Text = _localizer["OpenLog"];
         _openFolderItem.Text = _localizer["OpenFolder"];
@@ -385,6 +407,56 @@ public sealed class TrayApplicationContext : ApplicationContext
         _previousState = snapshot.State;
     }
 
+    private void OnDisplaySettingsChanged(object? sender, EventArgs eventArgs)
+    {
+        SchedulePetRecovery("display-settings-changed");
+    }
+
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs eventArgs)
+    {
+        RuntimeLogger.Write("power-mode-changed", $"mode={eventArgs.Mode}");
+        if (eventArgs.Mode == PowerModes.Resume)
+        {
+            SchedulePetRecovery("power-resume");
+        }
+    }
+
+    private void SchedulePetRecovery(string reason)
+    {
+        RuntimeLogger.Write("pet-recovery-scheduled", reason);
+        try
+        {
+            if (_petForm.IsDisposed || !_petForm.IsHandleCreated)
+            {
+                return;
+            }
+
+            _petForm.BeginInvoke(new Action(() => _ = RecoverPetAfterSystemEventAsync(reason)));
+        }
+        catch (Exception exception)
+        {
+            RuntimeLogger.Write(exception, $"pet-recovery-schedule-failed reason={reason}");
+        }
+    }
+
+    private async Task RecoverPetAfterSystemEventAsync(string reason)
+    {
+        try
+        {
+            _petForm.RecoverVisibility(reason, recreateHandle: true);
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            if (!_petForm.IsDisposed)
+            {
+                _petForm.RecoverVisibility($"{reason}-delayed", recreateHandle: false);
+            }
+        }
+        catch (Exception exception)
+        {
+            RuntimeLogger.Write(exception, $"pet-recovery-failed reason={reason}");
+            CrashLogger.Write(exception, "TrayApplicationContext.RecoverPetAfterSystemEventAsync");
+        }
+    }
+
     private void ShowCurrentStatusBalloon()
     {
         var primary = _snapshot.Activities.FirstOrDefault();
@@ -471,7 +543,9 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private void ExitApplication()
     {
+        RuntimeLogger.Write("exit-requested");
         _timer.Stop();
+        UnsubscribeSystemEvents();
         _notifyIcon.Visible = false;
         _petForm.Close();
         _settingsForm.Dispose();
@@ -488,7 +562,14 @@ public sealed class TrayApplicationContext : ApplicationContext
     protected override void ExitThreadCore()
     {
         _timer.Stop();
+        UnsubscribeSystemEvents();
         base.ExitThreadCore();
+    }
+
+    private void UnsubscribeSystemEvents()
+    {
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
     }
 
     private static string FormatDuration(TimeSpan duration) => duration.TotalHours >= 1

@@ -52,9 +52,13 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        RuntimeLogger.Write(
+            "app-start",
+            $"version={Application.ProductVersion}; args={string.Join(' ', args)}");
 
         Application.ThreadException += (_, eventArgs) =>
         {
+            RuntimeLogger.Write(eventArgs.Exception, "Application.ThreadException");
             CrashLogger.Write(eventArgs.Exception, "Application.ThreadException");
             MessageBox.Show(
                 $"DevSpace Status Pet encountered an error.\n\n{eventArgs.Exception.Message}\n\n{AppPaths.CrashLogPath}",
@@ -66,11 +70,13 @@ internal static class Program
         {
             if (eventArgs.ExceptionObject is Exception exception)
             {
+                RuntimeLogger.Write(exception, "AppDomain.UnhandledException");
                 CrashLogger.Write(exception, "AppDomain.UnhandledException");
             }
         };
         TaskScheduler.UnobservedTaskException += (_, eventArgs) =>
         {
+            RuntimeLogger.Write(eventArgs.Exception, "TaskScheduler.UnobservedTaskException");
             CrashLogger.Write(eventArgs.Exception, "TaskScheduler.UnobservedTaskException");
             eventArgs.SetObserved();
         };
@@ -79,9 +85,11 @@ internal static class Program
         {
             Application.Run(new TrayApplicationContext(args.Any(argument =>
                 argument.Equals("--settings", StringComparison.OrdinalIgnoreCase))));
+            RuntimeLogger.Write("app-exit", "clean=true");
         }
         catch (Exception exception)
         {
+            RuntimeLogger.Write(exception, "Program.Main");
             CrashLogger.Write(exception, "Program.Main");
             MessageBox.Show(
                 $"DevSpace Status Pet could not start.\n\n{exception.Message}\n\n{AppPaths.CrashLogPath}",

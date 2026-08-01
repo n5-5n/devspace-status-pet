@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.3
+# DevSpace Status Pet v0.1.4-alpha.1
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.3はC# / .NET 8で作られた正式版で、モニターカード、ピクセル単位アルファ透過、安全な更新機能を1つの自己完結型EXEへ統合しています。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.4-alpha.1は、モニター復帰・画面構成変更・画面外移動からの表示自己復旧と通常診断ログを追加したPrereleaseです。
 
 ## 必要環境
 
@@ -45,7 +45,9 @@ PowerShell版と.NET版の既存設定は自動的に引き継がれます。
 - サイズ、透明度、通知時間、吹き出し数の即時変更
 - GitHub Releasesの更新確認とSHA-256検証付き手動更新
 - Stable／Prerelease更新チャンネル
-- Windows自動起動、自己アンインストール、クラッシュログ
+- モニター復帰、画面構成変更、画面外移動からの表示自己復旧
+- トレイの「ペットを表示／復旧」
+- Windows自動起動、自己アンインストール、通常診断ログ、クラッシュログ
 
 ## アプリ内更新
 
@@ -80,6 +82,12 @@ DevSpace本体やプロジェクトは変更しません。
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
+```
+
+通常診断ログ：
+
+```text
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\runtime.log
 ```
 
 クラッシュログ：

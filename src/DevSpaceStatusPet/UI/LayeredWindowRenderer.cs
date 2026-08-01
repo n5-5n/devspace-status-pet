@@ -92,6 +92,18 @@ internal static class LayeredWindowRenderer
         }
     }
 
+    public static bool IsCloaked(IntPtr windowHandle)
+    {
+        if (!OperatingSystem.IsWindows() || windowHandle == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var cloaked = 0;
+        var result = DwmGetWindowAttribute(windowHandle, 14, out cloaked, sizeof(int));
+        return result == 0 && cloaked != 0;
+    }
+
     public static Bitmap CreateLayerBitmap(Size size)
     {
         return new Bitmap(
@@ -152,6 +164,13 @@ internal static class LayeredWindowRenderer
 
     [DllImport("gdi32.dll", SetLastError = true)]
     private static extern bool DeleteObject(IntPtr graphicsObject);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(
+        IntPtr windowHandle,
+        int attribute,
+        out int attributeValue,
+        int attributeSize);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool UpdateLayeredWindow(
