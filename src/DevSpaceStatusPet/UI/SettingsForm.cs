@@ -61,6 +61,8 @@ public sealed class SettingsForm : Form
         ShowInTaskbar = true;
         ClientSize = new Size(600, 625);
         Font = new Font("Segoe UI", 9f);
+        BackColor = DarkUiTheme.WindowBackground;
+        ForeColor = DarkUiTheme.Foreground;
 
         var root = new TableLayoutPanel
         {
@@ -101,6 +103,7 @@ public sealed class SettingsForm : Form
         buttons.Controls.AddRange([_closeButton, _saveButton, _openLogsButton]);
         root.Controls.Add(buttons, 0, 17);
         root.SetColumnSpan(buttons, 2);
+        DarkUiTheme.ApplyWindow(this);
 
         _saveButton.Click += (_, _) => SaveSettings(showConfirmation: true);
         _closeButton.Click += (_, _) => Hide();
@@ -128,9 +131,17 @@ public sealed class SettingsForm : Form
         RefreshText();
     }
 
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        DarkUiTheme.ApplyImmersiveDarkTitleBar(this);
+    }
+
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        DarkUiTheme.ApplyWindow(this);
+        DarkUiTheme.ApplyImmersiveDarkTitleBar(this);
         Reload();
         Activate();
     }

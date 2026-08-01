@@ -13,6 +13,7 @@ v0.2 is the next-generation C# / .NET 8 edition that consolidates the PowerShell
 - Up to eight parallel workspace bubbles
 - Classic and Neon robot themes
 - Independent Light and Dark speech-bubble themes
+- Unified dark UI for the tray menu, pet menu, and settings window
 - Japanese, English, and automatic OS-language selection
 - Instant GUI controls for size, opacity, themes, completion delay, stall threshold, and bubble count
 - Automatic migration of the v0.1 settings JSON

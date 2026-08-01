@@ -73,6 +73,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             _installItem,
             _exitItem
         ]);
+        DarkUiTheme.ApplyMenu(_trayMenu);
 
         _petForm = new PetForm(_settingsStore, _positionStore, _localizer);
         _petForm.SettingsRequested += (_, _) => ShowSettings();

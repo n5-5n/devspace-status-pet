@@ -88,6 +88,7 @@ public sealed class PetForm : Form
             new ToolStripSeparator(),
             _exitItem
         ]);
+        DarkUiTheme.ApplyMenu(_menu);
         ContextMenuStrip = _menu;
 
         _bubbleItem.Click += (_, _) => UpdateSettings(settings => settings.ShowBubble = _bubbleItem.Checked);
