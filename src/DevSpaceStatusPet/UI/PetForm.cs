@@ -58,9 +58,8 @@ public sealed class PetForm : Form
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
         TopMost = true;
-        BackColor = Color.Fuchsia;
-        TransparencyKey = Color.Fuchsia;
-        DoubleBuffered = true;
+        BackColor = Color.Black;
+        DoubleBuffered = false;
         KeyPreview = true;
 
         _menu = new ContextMenuStrip();
@@ -131,7 +130,7 @@ public sealed class PetForm : Form
         _animationTimer.Tick += (_, _) =>
         {
             _frame++;
-            Invalidate();
+            RenderLayeredWindow();
         };
 
         _settingsStore.Changed += (_, _) => ApplySettings();
@@ -139,6 +138,7 @@ public sealed class PetForm : Form
         {
             ApplySettings();
             RestorePosition();
+            RenderLayeredWindow();
             _animationTimer.Start();
         };
         FormClosed += (_, _) =>
@@ -151,19 +151,28 @@ public sealed class PetForm : Form
     public event EventHandler? SettingsRequested;
     public event EventHandler? ExitRequested;
 
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var parameters = base.CreateParams;
+            parameters.ExStyle |= LayeredWindowRenderer.WsExLayered | LayeredWindowRenderer.WsExToolWindow;
+            return parameters;
+        }
+    }
+
     public void ApplySnapshot(DevSpaceSnapshot snapshot)
     {
         _snapshot = snapshot;
         ApplySettings();
-        Invalidate();
     }
 
     private void ApplySettings()
     {
         var settings = _settingsStore.Current;
-        Opacity = settings.Opacity;
         ResizeForContent(settings);
         UpdateMenu(settings);
+        RenderLayeredWindow();
     }
 
     private void ResizeForContent(AppSettings settings)
@@ -179,7 +188,6 @@ public sealed class PetForm : Form
         ClientSize = target;
         Top = bottom - Height;
         ClampToScreen();
-        Invalidate();
     }
 
     internal static Size CalculateClientSize(AppSettings settings, int activityCount)
@@ -247,19 +255,51 @@ public sealed class PetForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        RenderContent(e.Graphics);
+        RenderLayeredWindow();
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        // The per-pixel alpha bitmap is the complete window surface.
     }
 
     internal Bitmap RenderPreview(Color background)
     {
+        using var layer = RenderLayerBitmap();
         var bitmap = new Bitmap(
             Math.Max(1, ClientSize.Width),
             Math.Max(1, ClientSize.Height),
-            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.Clear(background);
+        graphics.DrawImageUnscaled(layer, 0, 0);
+        return bitmap;
+    }
+
+    internal Bitmap RenderTransparentPreview() => RenderLayerBitmap();
+
+    private Bitmap RenderLayerBitmap()
+    {
+        var bitmap = LayeredWindowRenderer.CreateLayerBitmap(ClientSize);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.Clear(Color.Transparent);
         RenderContent(graphics);
         return bitmap;
+    }
+
+    private void RenderLayeredWindow()
+    {
+        if (!IsHandleCreated || IsDisposed || ClientSize.Width <= 0 || ClientSize.Height <= 0)
+        {
+            return;
+        }
+
+        using var bitmap = RenderLayerBitmap();
+        var opacity = (byte)Math.Clamp(
+            (int)Math.Round(_settingsStore.Current.Opacity * byte.MaxValue),
+            byte.MinValue,
+            byte.MaxValue);
+        LayeredWindowRenderer.Apply(this, bitmap, opacity);
     }
 
     private void RenderContent(Graphics graphics)
@@ -268,7 +308,8 @@ public sealed class PetForm : Form
         var activities = VisibleActivities(settings);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+        graphics.CompositingQuality = CompositingQuality.HighQuality;
+        graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
         graphics.ScaleTransform((float)settings.Scale, (float)settings.Scale);
 
         var bubbleAreaHeight = GetBubbleAreaHeight(settings, activities.Count);
