@@ -2,6 +2,21 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.3.0-alpha.1] - 2026-08-01
+
+### Added
+
+- Added the optional Monitor Card bubble design inspired by compact AI usage-monitor widgets.
+- Emphasized elapsed time with a large right-aligned value, status badge, accent rail, and animated activity meter.
+- Added immediate bubble-design switching in both the settings window and pet context menu.
+- Added a generated GitHub preview dedicated to the Monitor Card design.
+
+### Changed
+
+- Kept the existing speech bubble as the migration-safe default for current users.
+- Made installer, uninstaller, and desktop-shortcut labels version-neutral for v0.3 and later.
+- Extended the release workflow to accept future v0.x tags.
+
 ## [0.2.1] - 2026-08-01
 
 ### Added

@@ -5,6 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.2.1 (C# / .NET 8 single executable)**<br>
+> **Development build: v0.3.0-alpha.1 (Monitor Card design)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -18,6 +19,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Removes completed `Waiting for next step` bubbles after the configured quiet period
 - Classic and Neon robot themes
 - Independent Light and Dark speech-bubble themes
+- Immediate switching between Standard Speech Bubble and information-dense Monitor Card designs
 - Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
@@ -28,9 +30,9 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 
 ## Preview
 
-| Classic with parallel work | Neon with parallel work |
-|---|---|
-| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+| Standard Classic | Standard Neon | Monitor Card |
+|---|---|---|
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) | ![Monitor card preview](docs/preview-monitor-card.png) |
 
 | Dark settings window | Safe updater |
 |---|---|
@@ -51,7 +53,7 @@ No separate .NET Runtime installation or PowerShell execution-policy change is r
 1. Download `DevSpace-Status-Pet-v0.2.1-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
 2. Extract the ZIP
 3. Run `DevSpaceStatusPet.exe`
-4. Select **Install / update v0.2** from the context menu
+4. Select **Install / update** from the context menu
 
 Command-line installation is also available:
 
@@ -65,7 +67,7 @@ Install location:
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-Existing v0.1 and v0.2 alpha settings are reused automatically.
+Existing v0.1 and v0.2 settings are reused automatically. v0.3 development builds use the same settings files.
 
 ## Portable use
 
@@ -113,6 +115,7 @@ Right-click the pet or tray icon and open **Settings**. Changes are applied imme
 - Display language: Auto, Japanese, or English
 - Robot theme: Classic or Neon
 - Bubble theme: Light or Dark
+- Bubble design: Standard Speech Bubble or Monitor Card
 - Pet size and opacity
 - Bubble visibility and maximum count
 - Completion quiet period
@@ -175,7 +178,7 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 .\src\DevSpaceStatusPet\bin\Release\net8.0-windows10.0.17763.0\win-x64\DevSpaceStatusPet.exe --capture-previews docs
 ```
 
-Pushing a `v0.2.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.
+Pushing a `v0.x.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.
 
 ## Legacy v0.1 release
 

@@ -18,7 +18,7 @@ public static class SelfInstaller
         Environment.GetEnvironmentVariable("DEVSPACE_STATUS_PET_SHORTCUT_PATH") ??
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            "DevSpace Status Pet v0.2.lnk");
+            "DevSpace Status Pet.lnk");
 
     public static bool IsRunningFromInstallDirectory =>
         PathsEqual(AppPaths.ExecutablePath, InstalledExecutablePath);
@@ -50,6 +50,7 @@ public static class SelfInstaller
                 File.Move(replacementPath, InstalledExecutablePath, true);
             }
 
+            TryDeleteLegacyShortcut();
             CreateShortcut(DesktopShortcutPath, InstalledExecutablePath, "--settings");
             StartupManager.SetEnabled(true, InstalledExecutablePath);
 
@@ -87,8 +88,8 @@ public static class SelfInstaller
         {
             MessageBox.Show(
                 IsJapanese()
-                    ? $"DevSpace Status Pet v0.2をインストールしました。\n\n{InstallDirectory}"
-                    : $"DevSpace Status Pet v0.2 has been installed.\n\n{InstallDirectory}",
+                    ? $"DevSpace Status Petをインストールしました。\n\n{InstallDirectory}"
+                    : $"DevSpace Status Pet has been installed.\n\n{InstallDirectory}",
                 "DevSpace Status Pet",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -100,6 +101,7 @@ public static class SelfInstaller
         StopOtherInstances();
         StartupManager.SetEnabled(false);
         TryDelete(DesktopShortcutPath);
+        TryDeleteLegacyShortcut();
 
         if (removeSettings)
         {
@@ -111,8 +113,8 @@ public static class SelfInstaller
         {
             MessageBox.Show(
                 IsJapanese()
-                    ? "DevSpace Status Pet v0.2をアンインストールします。"
-                    : "DevSpace Status Pet v0.2 will be uninstalled.",
+                    ? "DevSpace Status Petをアンインストールします。"
+                    : "DevSpace Status Pet will be uninstalled.",
                 "DevSpace Status Pet",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -198,8 +200,21 @@ public static class SelfInstaller
         shortcut.TargetPath = targetPath;
         shortcut.Arguments = arguments;
         shortcut.WorkingDirectory = Path.GetDirectoryName(targetPath);
-        shortcut.Description = "DevSpace Status Pet v0.2";
+        shortcut.Description = "DevSpace Status Pet";
         shortcut.Save();
+    }
+
+    private static void TryDeleteLegacyShortcut()
+    {
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DEVSPACE_STATUS_PET_SHORTCUT_PATH")))
+        {
+            return;
+        }
+
+        var legacyPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            "DevSpace Status Pet v0.2.lnk");
+        TryDelete(legacyPath);
     }
 
     private static void TryDelete(string path)

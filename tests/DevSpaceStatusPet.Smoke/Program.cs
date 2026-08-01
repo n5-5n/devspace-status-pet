@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
@@ -37,6 +38,7 @@ Check(migrated.ResolvedTheme == PetTheme.Neon, "v0.1 theme migration");
 Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
 Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "v0.2 bubble theme migration default");
+Check(migrated.ResolvedBubbleStyle == BubbleVisualStyle.Speech, "bubble design migration default");
 Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
 Check(migrated.CheckUpdatesOnStartup && !migrated.IncludePrereleaseUpdates, "update settings defaults");
 Check(migrated.Clone().CheckUpdatesOnStartup, "update settings clone");
@@ -198,6 +200,10 @@ var darkBubbleSettings = new AppSettings { BubbleTheme = "Dark" };
 darkBubbleSettings.Normalize();
 Check(darkBubbleSettings.ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bubble setting normalization");
 Check(darkBubbleSettings.Clone().ResolvedBubbleTheme == BubbleColorTheme.Dark, "dark bubble setting clone");
+var monitorCardSettings = new AppSettings { BubbleStyle = "MonitorCard" };
+monitorCardSettings.Normalize();
+Check(monitorCardSettings.ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard, "monitor-card setting normalization");
+Check(monitorCardSettings.Clone().ResolvedBubbleStyle == BubbleVisualStyle.MonitorCard, "monitor-card setting clone");
 var lightBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Light);
 var darkBubbleColors = PetForm.ResolveBubbleColors(BubbleColorTheme.Dark);
 Check(lightBubbleColors.Background != darkBubbleColors.Background, "light and dark bubble palettes differ");
@@ -235,6 +241,7 @@ using (var settingsForm = new SettingsForm(updateUiStore, updateUiLocalizer, upd
     Check(settingsForm.Controls.Find("CheckUpdatesButton", true).Length == 1, "settings update-check button");
     Check(settingsForm.Controls.Find("CheckUpdatesOnStartupInput", true).Length == 1, "settings startup update option");
     Check(settingsForm.Controls.Find("IncludePrereleaseUpdatesInput", true).Length == 1, "settings prerelease option");
+    Check(settingsForm.Controls.Find("BubbleStyleInput", true).Length == 1, "settings bubble-design option");
 }
 using (var updateUiService = new UpdateService("0.2.0"))
 using (var updateForm = new UpdateForm(
@@ -429,9 +436,68 @@ Check(waitingAtQuietThreshold.Count == 0, "waiting bubble expires at quiet thres
 var defaultLayout = PetForm.CalculateClientSize(new AppSettings(), 1);
 var largeLayout = PetForm.CalculateClientSize(new AppSettings { Scale = 2.0 }, 1);
 var parallelLayout = PetForm.CalculateClientSize(new AppSettings(), 3);
+var monitorCardLayout = PetForm.CalculateClientSize(new AppSettings { BubbleStyle = "MonitorCard" }, 3);
 Check(defaultLayout.Width >= 340 && defaultLayout.Height >= 360, "larger default pet layout");
 Check(largeLayout.Width > defaultLayout.Width && largeLayout.Height > defaultLayout.Height, "scale changes layout size");
 Check(parallelLayout.Height > defaultLayout.Height + 150, "parallel bubbles expand window");
+Check(monitorCardLayout.Height > parallelLayout.Height, "monitor cards use expanded information layout");
+
+var renderNow = DateTimeOffset.Now;
+var renderActivities = new[]
+{
+    new DevSpaceActivity(
+        "render-working",
+        "VideoShrink",
+        ActivityState.Working,
+        OperationKind.Dotnet,
+        "dotnet test",
+        renderNow.AddMinutes(-2),
+        TimeSpan.FromMinutes(2),
+        WorkspaceId: "ws-render-working"),
+    new DevSpaceActivity(
+        "render-waiting",
+        "devspace-status",
+        ActivityState.Waiting,
+        OperationKind.Edit,
+        "PetForm.cs",
+        renderNow.AddSeconds(-18),
+        TimeSpan.FromSeconds(18),
+        WorkspaceId: "ws-render-waiting")
+};
+var renderSnapshot = new DevSpaceSnapshot(
+    ActivityState.Working,
+    renderActivities,
+    Environment.ProcessId,
+    7676,
+    "config.json",
+    "serve.log",
+    renderNow,
+    renderNow,
+    true);
+var renderSettings = new AppSettings
+{
+    Language = "English",
+    BubbleTheme = "Dark",
+    BubbleStyle = "MonitorCard",
+    Scale = 1.0,
+    MaxBubbles = 4
+};
+var renderStore = new SettingsStore(renderSettings);
+var renderLocalizer = new Localizer(() => renderStore.Current);
+using (var renderPet = new PetForm(renderStore, new PositionStore(null), renderLocalizer))
+{
+    renderPet.ApplySnapshot(renderSnapshot);
+    using var renderedCard = renderPet.RenderPreview(Color.FromArgb(18, 20, 26));
+    var sampledColors = new HashSet<int>();
+    for (var y = 0; y < renderedCard.Height; y += 8)
+    {
+        for (var x = 0; x < renderedCard.Width; x += 8)
+        {
+            sampledColors.Add(renderedCard.GetPixel(x, y).ToArgb());
+        }
+    }
+    Check(sampledColors.Count >= 20, "monitor-card visual rendering");
+}
 
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");

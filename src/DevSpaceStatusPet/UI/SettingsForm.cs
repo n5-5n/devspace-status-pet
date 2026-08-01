@@ -12,6 +12,7 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _languageBox = new() { Name = "LanguageInput", DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ComboBox _themeBox = new() { Name = "ThemeInput", DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ComboBox _bubbleThemeBox = new() { Name = "BubbleThemeInput", DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _bubbleStyleBox = new() { Name = "BubbleStyleInput", DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly CheckBox _showBubble = new() { Name = "ShowBubbleInput" };
     private readonly CheckBox _notifications = new() { Name = "NotificationsInput" };
     private readonly CheckBox _startWithWindows = new() { Name = "StartWithWindowsInput" };
@@ -29,6 +30,7 @@ public sealed class SettingsForm : Form
     private readonly Label _languageLabel = new() { AutoSize = true };
     private readonly Label _themeLabel = new() { AutoSize = true };
     private readonly Label _bubbleThemeLabel = new() { AutoSize = true };
+    private readonly Label _bubbleStyleLabel = new() { AutoSize = true };
     private readonly Label _bubbleLabel = new() { AutoSize = true };
     private readonly Label _scaleLabel = new() { AutoSize = true };
     private readonly Label _opacityLabel = new() { AutoSize = true };
@@ -70,7 +72,7 @@ public sealed class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = true;
-        ClientSize = new Size(620, 735);
+        ClientSize = new Size(620, 775);
         Font = new Font("Segoe UI", 9f);
         BackColor = DarkUiTheme.WindowBackground;
         ForeColor = DarkUiTheme.Foreground;
@@ -80,7 +82,7 @@ public sealed class SettingsForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(16),
             ColumnCount = 2,
-            RowCount = 21,
+            RowCount = 22,
             AutoSize = false
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
@@ -94,19 +96,20 @@ public sealed class SettingsForm : Form
         AddRow(root, 4, _languageLabel, _languageBox);
         AddRow(root, 5, _themeLabel, _themeBox);
         AddRow(root, 6, _bubbleThemeLabel, _bubbleThemeBox);
-        AddRow(root, 7, _bubbleLabel, _showBubble);
-        AddRow(root, 8, _scaleLabel, _scale);
-        AddRow(root, 9, _opacityLabel, _opacity);
-        AddRow(root, 10, _quietLabel, _quietSeconds);
-        AddRow(root, 11, _stallLabel, _stallMinutes);
-        AddRow(root, 12, _maxBubblesLabel, _maxBubbles);
-        AddRow(root, 13, _notificationsLabel, _notifications);
-        AddRow(root, 14, _startupLabel, _startWithWindows);
-        AddRow(root, 15, new Label { AutoSize = true }, _checkUpdatesOnStartup);
-        AddRow(root, 16, new Label { AutoSize = true }, _includePrereleases);
-        AddRow(root, 17, _versionLabel, _versionValue);
-        AddRow(root, 18, _latestVersionLabel, _latestVersionValue);
-        AddRow(root, 19, _updateStatusLabel, _updateStatusValue);
+        AddRow(root, 7, _bubbleStyleLabel, _bubbleStyleBox);
+        AddRow(root, 8, _bubbleLabel, _showBubble);
+        AddRow(root, 9, _scaleLabel, _scale);
+        AddRow(root, 10, _opacityLabel, _opacity);
+        AddRow(root, 11, _quietLabel, _quietSeconds);
+        AddRow(root, 12, _stallLabel, _stallMinutes);
+        AddRow(root, 13, _maxBubblesLabel, _maxBubbles);
+        AddRow(root, 14, _notificationsLabel, _notifications);
+        AddRow(root, 15, _startupLabel, _startWithWindows);
+        AddRow(root, 16, new Label { AutoSize = true }, _checkUpdatesOnStartup);
+        AddRow(root, 17, new Label { AutoSize = true }, _includePrereleases);
+        AddRow(root, 18, _versionLabel, _versionValue);
+        AddRow(root, 19, _latestVersionLabel, _latestVersionValue);
+        AddRow(root, 20, _updateStatusLabel, _updateStatusValue);
 
         var buttons = new FlowLayoutPanel
         {
@@ -116,7 +119,7 @@ public sealed class SettingsForm : Form
             WrapContents = false
         };
         buttons.Controls.AddRange([_closeButton, _saveButton, _checkUpdatesButton, _openLogsButton]);
-        root.Controls.Add(buttons, 0, 20);
+        root.Controls.Add(buttons, 0, 21);
         root.SetColumnSpan(buttons, 2);
         DarkUiTheme.ApplyWindow(this);
 
@@ -218,6 +221,7 @@ public sealed class SettingsForm : Form
         _languageLabel.Text = _localizer["Language"];
         _themeLabel.Text = _localizer["Theme"];
         _bubbleThemeLabel.Text = _localizer["BubbleTheme"];
+        _bubbleStyleLabel.Text = _localizer["BubbleStyle"];
         _bubbleLabel.Text = _localizer["ShowBubble"];
         _scaleLabel.Text = _localizer["Scale"];
         _opacityLabel.Text = _localizer["Opacity"];
@@ -266,6 +270,9 @@ public sealed class SettingsForm : Form
         settings.BubbleTheme = (_bubbleThemeBox.SelectedItem is Choice<BubbleColorTheme> bubbleTheme
             ? bubbleTheme.Value
             : BubbleColorTheme.Light).ToString();
+        settings.BubbleStyle = (_bubbleStyleBox.SelectedItem is Choice<BubbleVisualStyle> bubbleStyle
+            ? bubbleStyle.Value
+            : BubbleVisualStyle.Speech).ToString();
         settings.ShowBubble = _showBubble.Checked;
         settings.Scale = (double)_scale.Value / 100d;
         settings.Opacity = (double)_opacity.Value / 100d;
@@ -289,6 +296,7 @@ public sealed class SettingsForm : Form
         _languageBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
         _themeBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
         _bubbleThemeBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
+        _bubbleStyleBox.SelectedIndexChanged += (_, _) => SaveSettings(showConfirmation: false);
         _showBubble.CheckedChanged += (_, _) => SaveSettings(showConfirmation: false);
         _scale.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
         _opacity.ValueChanged += (_, _) => SaveSettings(showConfirmation: false);
@@ -336,6 +344,17 @@ public sealed class SettingsForm : Form
             .OfType<Choice<BubbleColorTheme>>()
             .First(choice => choice.Value == settings.ResolvedBubbleTheme);
         _bubbleThemeBox.EndUpdate();
+
+        _bubbleStyleBox.BeginUpdate();
+        _bubbleStyleBox.Items.Clear();
+        _bubbleStyleBox.Items.AddRange([
+            new Choice<BubbleVisualStyle>(BubbleVisualStyle.Speech, _localizer["BubbleSpeech"]),
+            new Choice<BubbleVisualStyle>(BubbleVisualStyle.MonitorCard, _localizer["BubbleMonitorCard"])
+        ]);
+        _bubbleStyleBox.SelectedItem = _bubbleStyleBox.Items
+            .OfType<Choice<BubbleVisualStyle>>()
+            .First(choice => choice.Value == settings.ResolvedBubbleStyle);
+        _bubbleStyleBox.EndUpdate();
     }
 
     private static string GetCurrentVersion()
