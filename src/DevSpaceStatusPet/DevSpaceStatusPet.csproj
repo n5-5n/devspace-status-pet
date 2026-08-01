@@ -9,9 +9,10 @@
     <RootNamespace>DevSpaceStatusPet</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>0.2.0-alpha.6</Version>
-    <FileVersion>0.2.0.6</FileVersion>
+    <Version>0.2.0</Version>
+    <FileVersion>0.2.0.0</FileVersion>
     <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

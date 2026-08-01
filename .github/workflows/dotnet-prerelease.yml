@@ -1,4 +1,4 @@
-name: Publish .NET prerelease
+name: Publish .NET release
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
           $exe = ".\artifacts\DevSpace-Status-Pet-v$version-win-x64-publish\DevSpaceStatusPet.exe"
           .\tests\DotNetInstallSmoke.ps1 -ExecutablePath $exe
 
-      - name: Create GitHub prerelease
+      - name: Create GitHub release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,8 +49,16 @@ jobs:
           $version = [System.IO.File]::ReadAllText("$PWD\DOTNET_VERSION").Trim()
           $zip = "artifacts\DevSpace-Status-Pet-v$version-win-x64.zip"
           $hash = "$zip.sha256"
-          gh release create "${{ github.ref_name }}" $zip $hash `
-            --verify-tag `
-            --prerelease `
-            --title "DevSpace Status Pet v$version" `
-            --notes-file RELEASE_NOTES.v0.2.md
+          $arguments = @(
+            'release', 'create', "${{ github.ref_name }}", $zip, $hash,
+            '--verify-tag',
+            '--title', "DevSpace Status Pet v$version",
+            '--notes-file', 'RELEASE_NOTES.v0.2.md'
+          )
+          if ($version.Contains('-')) {
+            $arguments += '--prerelease'
+          }
+          & gh @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release creation failed with exit code $LASTEXITCODE"
+          }

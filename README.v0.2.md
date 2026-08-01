@@ -1,49 +1,57 @@
-# DevSpace Status Pet v0.2 (.NET版)
+# DevSpace Status Pet v0.2.0
 
 **[日本語](README.v0.2.md) | [English](README.v0.2.en.md)**
 
-v0.2は、PowerShell製v0.1の機能をC# / .NET 8の単一EXEへ統合する次世代版です。v0.1.0は安定版として維持され、v0.2は現在アルファ版です。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.2.0はC# / .NET 8で作られた正式版で、タスクトレイ、ペット、設定画面を1つの自己完結型EXEへ統合しています。
 
-## 現在実装済み
+## 必要環境
 
-- タスクトレイ監視、デスクトップペット、設定画面を1プロセスへ統合
-- 自己完結型の単一`DevSpaceStatusPet.exe`
-- .NET RuntimeやPowerShell実行ポリシーが不要
-- DevSpaceのポート、ログ、実行プロセスを自動検出
-- 複数ワークスペースを最大8個の吹き出しで表示
-- ロボットはクラシック／ネオンテーマ
-- 吹き出しはライト／ダークテーマを独立選択
-- タスクトレイメニュー、ペットメニュー、設定画面をダークUIで統一
-- 日本語／English／OS言語自動
-- サイズ、透明度、テーマ、通知待機時間、停滞判定、吹き出し数をGUIで即時変更
-- v0.1の設定JSONを自動移行
-- 完了通知を処理単位ではなく、静止期間後に1回だけ表示
-- クラッシュログを`%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log`へ保存
-- EXE自身によるインストール、Windows自動起動登録、アンインストール
+- Windows 10またはWindows 11（x64）
+- `@waishnav/devspace`を同じPCで実行
 
-## ポータブル実行
+.NET Runtimeの追加インストールは不要です。
 
-`DevSpaceStatusPet.exe`をそのまま実行します。
+## インストール／更新
 
-設定画面を直接開く場合：
+1. ZIPを展開
+2. `DevSpaceStatusPet.exe`を実行
+3. 右クリックメニューから**v0.2をインストール／更新**を選択
 
-```text
-DevSpaceStatusPet.exe --settings
-```
-
-## インストール
+または次を実行します。
 
 ```text
 DevSpaceStatusPet.exe --install
 ```
 
-次へコピーされます。
+インストール先：
 
 ```text
 %LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
 ```
 
-デスクトップショートカットとWindows自動起動も登録されます。
+既存のv0.1およびv0.2 alpha設定は自動的に引き継がれます。
+
+## 主な機能
+
+- プロジェクト名、処理内容、経過時間の表示
+- 複数ワークスペースの並列吹き出し
+- UTF-8／UTF-16／UTF-32ログ対応
+- 完了、失敗、停滞、DevSpace停止通知
+- 完了後の待機吹き出し自動削除
+- クラシック／ネオンのロボットテーマ
+- ライト／ダークの吹き出しテーマ
+- ダーク化された右クリックメニューと設定画面
+- 日本語／English／OS言語自動選択
+- サイズ、透明度、通知時間、吹き出し数の即時変更
+- Windows自動起動、自己アンインストール、クラッシュログ
+
+## ポータブル実行
+
+インストールせず、展開したEXEを直接実行することもできます。
+
+```text
+DevSpaceStatusPet.exe --settings
+```
 
 ## アンインストール
 
@@ -59,21 +67,21 @@ DevSpaceStatusPet.exe --uninstall
 DevSpaceStatusPet.exe --uninstall --remove-settings
 ```
 
-## 開発・検証
+DevSpace本体やプロジェクトは変更しません。
 
-```powershell
-dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
-dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
-dotnet publish .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -r win-x64 --self-contained true
-```
-
-## v0.1との関係
-
-v0.2は既存の次の設定をそのまま読みます。
+## 設定保存先
 
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-アルファ期間中はv0.1を自動削除せず、別のインストール先とMutexを使用します。
+クラッシュログ：
+
+```text
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
+```
+
+## 旧v0.1版
+
+PowerShell製v0.1.0はロールバック用としてGitHub Releasesに残しています。

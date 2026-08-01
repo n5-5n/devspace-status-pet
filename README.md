@@ -4,16 +4,25 @@
 
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
-> **安定版：v0.1.0（PowerShell）**<br>
-> C# / .NET 8の単一EXEへ移行するv0.2アルファ版は、[v0.2 日本語README](README.v0.2.md)を参照してください。
+> **安定版：v0.2.0（C# / .NET 8・単一EXE）**<br>
+> 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
-- 実際のローカル処理を素早く検出
+## 主な機能
+
+- DevSpaceの実際のローカル処理を素早く検出
 - プロジェクト名、処理内容、経過時間を表示
-- 複数チャット／ワークスペースの並列作業を複数吹き出しで表示
+- 複数チャット／ワークスペースを別々の吹き出しで表示
+- UTF-8／UTF-16／UTF-32のDevSpaceログを自動判定
+- 過去の`open_workspace`履歴からプロジェクト名を復元
 - 作業区切り、失敗、停滞、DevSpace停止を通知
-- クラシック／ネオンの2テーマ
-- 日本語／英語／OS言語自動選択
-- タスクバーには表示せず、画面上へ常駐
+- 完了後の「次の処理待ち」吹き出しを設定時間で自動削除
+- クラシック／ネオンのロボットテーマ
+- ライト／ダークの吹き出しテーマ
+- ダーク化されたタスクトレイメニュー、ペットメニュー、設定画面
+- 日本語／English／OS言語自動選択
+- サイズ、透明度、通知時間、停滞判定、吹き出し数を即時変更
+- Windowsログイン時の自動起動
+- クラッシュログと診断情報
 
 ## プレビュー
 
@@ -23,50 +32,42 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## 必要環境
 
-- Windows 10またはWindows 11
-- Windows PowerShell 5.1
+- Windows 10またはWindows 11（x64）
 - [`@waishnav/devspace`](https://www.npmjs.com/package/@waishnav/devspace)
 - DevSpaceと本ツールを同じPCで実行
 
-macOSとLinuxには対応していません。
+.NET Runtimeの別途インストールや、PowerShell実行ポリシーの変更は不要です。macOSとLinuxには対応していません。
 
-## 最短インストール
+## インストール
 
-1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-vX.Y.Z.zip`をダウンロード
+1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.2.0-win-x64.zip`をダウンロード
 2. ZIPを展開
-3. `Install.cmd`を実行
+3. `DevSpaceStatusPet.exe`を実行
+4. 右クリックメニューから**v0.2をインストール／更新**を選択
 
-インストーラーは次へコピーします。
+コマンドでもインストールできます。
 
 ```text
-%LOCALAPPDATA%\DevSpaceStatusPet
+DevSpaceStatusPet.exe --install
 ```
 
-作成されるもの：
+インストール先：
 
-- デスクトップ：`DevSpace Status Pet`
-- デスクトップ：`DevSpace Status Pet Settings`
-- Windowsログイン時の自動起動
+```text
+%LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
+```
 
-DevSpaceを検出できない場合もインストール自体は完了し、必要な起動手順を案内します。
+既存のv0.1／v0.2 alpha設定は自動的に引き継がれます。
 
-## 設定画面
+## ポータブル実行
 
-ペットまたはタスクトレイを右クリックし、**設定を開く**を選択します。デスクトップの`DevSpace Status Pet Settings`からも開けます。
+展開した`DevSpaceStatusPet.exe`をそのまま起動しても使用できます。
 
-確認・変更できる項目：
+設定画面を直接開く場合：
 
-- DevSpaceの起動状態
-- 検出したポート
-- `config.json`の位置
-- `serve.log`の位置
-- 表示言語：自動／日本語／English
-- テーマ：クラシック／ネオン
-- 吹き出しの常時表示
-- Windowsログイン時の自動起動
-- バージョン
-
-保存すると、監視とペットを安全に再起動します。
+```text
+DevSpaceStatusPet.exe --settings
+```
 
 ## 状態表示
 
@@ -79,93 +80,81 @@ DevSpaceを検出できない場合もインストール自体は完了し、必
 | 紫 | CPUとログ更新が長時間なく、停滞の疑い |
 | 赤 | DevSpace停止中 |
 
-黄色は作業全体の完了を意味しません。完了通知は、最後のDevSpace操作から既定で45秒間、新しい処理がない場合に1回だけ表示します。個々の`read`、`edit`、`bash`の完了ごとには通知しません。
+黄色は作業全体の完了を即座に意味しません。既定では最後のDevSpace操作から45秒間、新しい処理がなければ完了通知を1回表示し、待機中の吹き出しも同時に消えます。
 
 ## 並列作業
 
-複数のワークスペースやプロセスが動いている場合、最大4段の吹き出しを表示します。
+ワークスペースIDごとに活動を分離するため、同じプロジェクトを複数チャットで操作していても別々の吹き出しとして表示されます。
 
 ```text
 VideoShrink
-dotnet test
+テスト実行
 作業中  03:21
 
-personal-hub
+VideoShrink
 ファイル編集
 次の処理待ち  00:08
 ```
 
-5件以上は残り件数へまとめます。
+最大表示数は設定画面から1～8件で変更できます。
 
-## ペット操作
+## 設定
 
-- 左ドラッグ：移動
-- 左クリック：吹き出しの常時表示を切替
-- 右クリック：設定、言語、テーマ、位置リセット、終了
+ペットまたはタスクトレイを右クリックして**設定**を開きます。変更は保存ボタンを押さなくても即時反映されます。
 
-設定は次へ保存されます。
+- 表示言語：自動／日本語／English
+- ロボットテーマ：クラシック／ネオン
+- 吹き出しテーマ：ライト／ダーク
+- ペットサイズ、透明度
+- 吹き出し表示と最大件数
+- 完了通知までの待機秒数
+- 停滞判定時間
+- 通知の有効／無効
+- Windows自動起動
+
+設定ファイル：
 
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-## アンインストール
-
-インストール先または展開したZIP内の`Uninstall.cmd`を実行します。
-
-アンインストール時に、テーマ・言語・ペット位置も削除するか選択できます。DevSpace本体やDevSpaceのプロジェクトには触れません。
-
-## 自動検出と移植性
-
-本ツールは各PCの次の情報を自動検出します。
-
-- `%USERPROFILE%\.devspace\config.json`
-- DevSpaceのポート
-- `allowedRoots`
-- 実際に開かれたワークスペース
-- `serve.log`
-
-別ドライブ、スペース入りパス、日本語パス、UNCパスをセルフテストしています。ログ位置を独自変更していて自動検出できない場合は、`DevSpaceStatus.ps1 -LogPath ...`で指定できます。
-
-## 安全性
-
-ペットへ渡す状態JSONには、次の安全な要約だけを書き出します。
-
-- 状態
-- プロジェクト名
-- `dotnet test`などの短い処理名
-- 経過時間
-- 成否
-
-コマンド全文、環境変数、認証情報は書き出しません。
-
-## ソースから実行
-
-```powershell
-.\tests\ParseScripts.ps1
-.\Start-DevSpaceStatus.cmd
-```
-
-リリースZIPを生成する場合：
-
-```powershell
-.\scripts\Build-Release.ps1
-```
-
-生成物：
+クラッシュログ：
 
 ```text
-artifacts\DevSpace-Status-Pet-vX.Y.Z.zip
-artifacts\DevSpace-Status-Pet-vX.Y.Z.zip.sha256
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
 ```
 
-`vX.Y.Z`タグをpushすると、GitHub Actionsが検証、ZIP生成、GitHub Release公開を自動実行します。
+## アンインストール
 
-## 変更履歴
+設定を保持：
 
-[CHANGELOG.md](CHANGELOG.md)
+```text
+DevSpaceStatusPet.exe --uninstall
+```
+
+設定も削除：
+
+```text
+DevSpaceStatusPet.exe --uninstall --remove-settings
+```
+
+DevSpace本体やDevSpaceのプロジェクトには触れません。
+
+## 開発・検証
+
+```powershell
+dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
+dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
+.\scripts\Build-DotNetRelease.ps1
+```
+
+タグ`v0.2.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。
+
+## 旧v0.1版
+
+PowerShell製v0.1.0はGitHub Releasesに残しています。v0.2はv0.1のテーマ、言語、吹き出し、位置設定をそのまま読み取ります。
 
 ## License
 
-MIT License
+[MIT License](LICENSE)

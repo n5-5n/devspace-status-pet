@@ -2,18 +2,27 @@
 
 **[日本語](README.md) | [English](README.en.md)**
 
-A Windows tray monitor and animated desktop pet for local DevSpace activity.
+A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
-> **Stable release: v0.1.0 (PowerShell)**<br>
-> See the [v0.2 English README](README.v0.2.en.md) for the C# / .NET 8 single-executable alpha.
+> **Stable release: v0.2.0 (C# / .NET 8 single executable)**<br>
+> The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
-- Detects real local processing quickly
-- Shows project, operation, and elapsed time
-- Displays multiple bubbles for parallel chats, workspaces, and processes
-- Notifies on work-segment completion, failure, stalls, and DevSpace shutdown
-- Classic and Neon themes
+## Features
+
+- Detects actual local DevSpace work quickly
+- Shows project name, current operation, and elapsed time
+- Displays separate speech bubbles for parallel chats and workspaces
+- Automatically detects UTF-8, UTF-16, and UTF-32 DevSpace logs
+- Restores project names from historical `open_workspace` entries
+- Notifies on completed work sessions, failures, stalls, and DevSpace shutdown
+- Removes completed `Waiting for next step` bubbles after the configured quiet period
+- Classic and Neon robot themes
+- Independent Light and Dark speech-bubble themes
+- Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
-- Stays on the desktop without adding a taskbar button
+- Immediate settings preview for size, opacity, timing, and bubble count
+- Windows startup registration
+- Crash logging and runtime diagnostics
 
 ## Preview
 
@@ -23,149 +32,129 @@ A Windows tray monitor and animated desktop pet for local DevSpace activity.
 
 ## Requirements
 
-- Windows 10 or Windows 11
-- Windows PowerShell 5.1
+- Windows 10 or Windows 11, x64
 - [`@waishnav/devspace`](https://www.npmjs.com/package/@waishnav/devspace)
-- DevSpace and this monitor running on the same computer
+- DevSpace and this application running on the same computer
 
-macOS and Linux are not supported.
+No separate .NET Runtime installation or PowerShell execution-policy change is required. macOS and Linux are not supported.
 
-## Quick install
+## Install
 
-1. Download `DevSpace-Status-Pet-vX.Y.Z.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest).
-2. Extract the ZIP.
-3. Run `Install.cmd`.
+1. Download `DevSpace-Status-Pet-v0.2.0-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
+2. Extract the ZIP
+3. Run `DevSpaceStatusPet.exe`
+4. Select **Install / update v0.2** from the context menu
 
-The installer copies the application to:
+Command-line installation is also available:
 
 ```text
-%LOCALAPPDATA%\DevSpaceStatusPet
+DevSpaceStatusPet.exe --install
 ```
 
-It creates:
+Install location:
 
-- `DevSpace Status Pet` on the desktop
-- `DevSpace Status Pet Settings` on the desktop
-- A Windows startup shortcut
+```text
+%LOCALAPPDATA%\DevSpaceStatusPetV2\DevSpaceStatusPet.exe
+```
 
-Installation still completes when DevSpace is not detected, and the installer explains what must be installed or started.
+Existing v0.1 and v0.2 alpha settings are reused automatically.
 
-## Settings window
+## Portable use
 
-Right-click the pet or tray icon and choose **Open settings**. You can also use the `DevSpace Status Pet Settings` desktop shortcut.
+You can run the extracted `DevSpaceStatusPet.exe` directly without installing it.
 
-The window shows and configures:
+Open the settings window immediately:
 
-- Whether DevSpace is running
-- Detected port
-- `config.json` location
-- `serve.log` location
-- Display language: Auto, Japanese, or English
-- Pet theme: Classic or Neon
-- Always-visible bubbles
-- Start with Windows
-- Installed version
+```text
+DevSpaceStatusPet.exe --settings
+```
 
-Saving safely restarts the monitor and pet.
+## Status colors
 
-## Tray states
-
-| Color | State |
+| Color | Meaning |
 |---|---|
-| Green | Running a local process |
+| Green | A local process is running |
 | Blue | DevSpace is running and idle |
-| Yellow | The previous process ended and is waiting for the next step |
-| Orange | The previous process failed |
-| Purple | CPU and log activity appear stalled |
+| Yellow | The previous operation ended and the workspace is waiting for another step |
+| Orange | The previous operation failed |
+| Purple | Possible stall because CPU and log activity have stopped |
 | Red | DevSpace is stopped |
 
-Yellow does not mean the entire assistant task is finished. By default, a completion notification appears once only after 45 seconds without a new DevSpace operation. It does not notify after every `read`, `edit`, or `bash` call.
+Yellow does not immediately mean the full work session is complete. By default, after 45 seconds without another DevSpace operation, the app sends one completion notification and removes the waiting bubble.
 
-## Parallel work
+## Parallel workspaces
 
-When several workspaces or process trees are active, the pet shows up to four bubbles.
+Activities are separated by workspace ID, so two chats working in the same project still receive separate bubbles.
 
 ```text
 VideoShrink
-dotnet test
+Running tests
 Working  03:21
 
-personal-hub
-Edit file
+VideoShrink
+Editing file
 Waiting for next step  00:08
 ```
 
-Five or more activities are summarized as a remaining count.
+The maximum number of visible bubbles can be changed from 1 to 8 in Settings.
 
-## Pet controls
+## Settings
 
-- Left-drag: move the pet
-- Left-click: toggle always-visible bubbles
-- Right-click: settings, language, theme, reset position, or exit
+Right-click the pet or tray icon and open **Settings**. Changes are applied immediately without pressing Save.
 
-User settings are stored in:
+- Display language: Auto, Japanese, or English
+- Robot theme: Classic or Neon
+- Bubble theme: Light or Dark
+- Pet size and opacity
+- Bubble visibility and maximum count
+- Completion quiet period
+- Stall threshold
+- Notifications
+- Windows startup
+
+Settings files:
 
 ```text
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
 
-## Uninstall
-
-Run `Uninstall.cmd` from the installation directory or the extracted release folder.
-
-You can choose whether to remove the saved theme, language, and pet position. The uninstaller does not modify DevSpace itself or any DevSpace project.
-
-## Automatic detection and portability
-
-The monitor automatically reads the current computer's:
-
-- `%USERPROFILE%\.devspace\config.json`
-- DevSpace port
-- `allowedRoots`
-- Opened workspace paths
-- `serve.log`
-
-Self-tests cover alternate drives, spaces in paths, non-English paths, and UNC paths. If a custom log location cannot be detected, pass it explicitly with `DevSpaceStatus.ps1 -LogPath ...`.
-
-## Privacy and safety
-
-The pet state JSON contains only safe summaries:
-
-- State
-- Project name
-- Short operation such as `dotnet test`
-- Elapsed time
-- Success or failure
-
-Full command lines, environment variables, credentials, and tokens are not written to the pet state file.
-
-## Run from source
-
-```powershell
-.\tests\ParseScripts.ps1
-.\Start-DevSpaceStatus.cmd
-```
-
-Build a release package with:
-
-```powershell
-.\scripts\Build-Release.ps1
-```
-
-Outputs:
+Crash log:
 
 ```text
-artifacts\DevSpace-Status-Pet-vX.Y.Z.zip
-artifacts\DevSpace-Status-Pet-vX.Y.Z.zip.sha256
+%LOCALAPPDATA%\DevSpaceStatusPet\logs\crash.log
 ```
 
-Pushing a `vX.Y.Z` tag makes GitHub Actions validate the project, build the ZIP, and publish a GitHub Release automatically.
+## Uninstall
 
-## Changelog
+Keep settings:
 
-[CHANGELOG.md](CHANGELOG.md)
+```text
+DevSpaceStatusPet.exe --uninstall
+```
+
+Remove settings too:
+
+```text
+DevSpaceStatusPet.exe --uninstall --remove-settings
+```
+
+The uninstaller does not modify DevSpace itself or any DevSpace project.
+
+## Development and validation
+
+```powershell
+dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
+dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
+.\scripts\Build-DotNetRelease.ps1
+```
+
+Pushing a `v0.2.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.
+
+## Legacy v0.1 release
+
+The PowerShell v0.1.0 release remains available on GitHub Releases. v0.2 reads the existing v0.1 theme, language, bubble, and position settings automatically.
 
 ## License
 
-MIT License
+[MIT License](LICENSE)
