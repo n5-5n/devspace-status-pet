@@ -1,3 +1,7 @@
+using System.IO.Compression;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
 using DevSpaceStatusPet.Models;
@@ -34,6 +38,161 @@ Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
 Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "v0.2 bubble theme migration default");
 Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
+Check(migrated.CheckUpdatesOnStartup && !migrated.IncludePrereleaseUpdates, "update settings defaults");
+Check(migrated.Clone().CheckUpdatesOnStartup, "update settings clone");
+
+Check(SemanticVersion.TryParse("v0.2.1", out var stableVersion) && stableVersion.ToString() == "0.2.1", "stable version parsing");
+Check(SemanticVersion.TryParse("0.3.0-beta.2", out var previewVersion) && previewVersion.IsPrerelease, "prerelease version parsing");
+Check(stableVersion.CompareTo(new SemanticVersion(0, 2, 1, "beta.1")) > 0, "stable outranks prerelease");
+
+using (var releasesDocument = JsonDocument.Parse("""
+[
+  {
+    "tag_name": "v0.2.1",
+    "name": "DevSpace Status Pet v0.2.1",
+    "html_url": "https://example.test/v0.2.1",
+    "body": "Stable notes",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-08-01T00:00:00Z",
+    "assets": [
+      { "name": "DevSpace-Status-Pet-v0.2.1-win-x64.zip", "browser_download_url": "https://example.test/stable.zip", "size": 123 },
+      { "name": "DevSpace-Status-Pet-v0.2.1-win-x64.zip.sha256", "browser_download_url": "https://example.test/stable.sha256", "size": 100 }
+    ]
+  },
+  {
+    "tag_name": "v0.3.0-beta.2",
+    "name": "DevSpace Status Pet v0.3.0-beta.2",
+    "html_url": "https://example.test/v0.3.0-beta.2",
+    "body": "Preview notes",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-08-02T00:00:00Z",
+    "assets": [
+      { "name": "DevSpace-Status-Pet-v0.3.0-beta.2-win-x64.zip", "browser_download_url": "https://example.test/preview.zip", "size": 456 },
+      { "name": "DevSpace-Status-Pet-v0.3.0-beta.2-win-x64.zip.sha256", "browser_download_url": "https://example.test/preview.sha256", "size": 100 }
+    ]
+  }
+]
+"""))
+{
+    var stableRelease = UpdateService.SelectLatestRelease(
+        releasesDocument.RootElement,
+        new SemanticVersion(0, 2, 0, null),
+        includePrereleases: false);
+    var previewRelease = UpdateService.SelectLatestRelease(
+        releasesDocument.RootElement,
+        new SemanticVersion(0, 2, 0, null),
+        includePrereleases: true);
+    Check(stableRelease?.Version == "0.2.1", "stable update selection");
+    Check(previewRelease?.Version == "0.3.0-beta.2", "prerelease update selection");
+}
+
+Check(UpdateService.ParseSha256($"{new string('a', 64)}  package.zip") == new string('a', 64), "SHA-256 text parsing");
+
+var updatePackageRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-UpdatePackage-{Environment.ProcessId}");
+Directory.CreateDirectory(updatePackageRoot);
+try
+{
+    var sourceExecutable = Environment.ProcessPath
+        ?? throw new InvalidOperationException("The smoke-test executable path is unavailable.");
+    var sourceProductVersion = System.Diagnostics.FileVersionInfo
+        .GetVersionInfo(sourceExecutable)
+        .ProductVersion ?? "1.0.0";
+    var metadataIndex = sourceProductVersion.IndexOf('+');
+    var packageVersion = metadataIndex >= 0
+        ? sourceProductVersion[..metadataIndex]
+        : sourceProductVersion;
+    var zipPath = Path.Combine(updatePackageRoot, "update.zip");
+    using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+    {
+        var entry = archive.CreateEntry("DevSpace-Status-Pet-test/DevSpaceStatusPet.exe");
+        await using var target = entry.Open();
+        await using var source = File.OpenRead(sourceExecutable);
+        await source.CopyToAsync(target);
+    }
+
+    var zipBytes = await File.ReadAllBytesAsync(zipPath);
+    var zipHash = Convert.ToHexString(SHA256.HashData(zipBytes)).ToLowerInvariant();
+    var handler = new FakeHttpMessageHandler(new Dictionary<string, byte[]>
+    {
+        ["https://example.test/update.zip"] = zipBytes,
+        ["https://example.test/update.sha256"] = Encoding.UTF8.GetBytes($"{zipHash}  update.zip\n")
+    });
+    using var client = new HttpClient(handler);
+    using var updateService = new UpdateService("0.0.0", client);
+    var release = new UpdateRelease(
+        packageVersion,
+        $"v{packageVersion}",
+        "Test update",
+        "https://example.test/release",
+        "Test notes",
+        false,
+        DateTimeOffset.Now,
+        "https://example.test/update.zip",
+        "https://example.test/update.sha256",
+        zipBytes.Length);
+    var preparedInstaller = await updateService.PrepareInstallerAsync(release);
+    Check(File.Exists(preparedInstaller), "verified update package extraction");
+    Check(
+        System.Diagnostics.FileVersionInfo.GetVersionInfo(preparedInstaller).ProductVersion?.StartsWith(packageVersion, StringComparison.OrdinalIgnoreCase) == true,
+        "prepared installer version validation");
+
+    var badHandler = new FakeHttpMessageHandler(new Dictionary<string, byte[]>
+    {
+        ["https://example.test/update.zip"] = zipBytes,
+        ["https://example.test/update.sha256"] = Encoding.UTF8.GetBytes($"{new string('0', 64)}  update.zip\n")
+    });
+    using var badClient = new HttpClient(badHandler);
+    using var badService = new UpdateService("0.0.0", badClient);
+    var checksumRejected = false;
+    try
+    {
+        _ = await badService.PrepareInstallerAsync(release);
+    }
+    catch (InvalidDataException)
+    {
+        checksumRejected = true;
+    }
+    Check(checksumRejected, "tampered update package rejection");
+
+    var unsafeZip = Path.Combine(updatePackageRoot, "unsafe.zip");
+    using (var archive = ZipFile.Open(unsafeZip, ZipArchiveMode.Create))
+    {
+        var entry = archive.CreateEntry("../outside.txt");
+        await using var writer = new StreamWriter(entry.Open());
+        await writer.WriteAsync("unsafe");
+    }
+    var unsafeRejected = false;
+    try
+    {
+        UpdateService.ExtractZipSafely(unsafeZip, Path.Combine(updatePackageRoot, "unsafe-extract"));
+    }
+    catch (InvalidDataException)
+    {
+        unsafeRejected = true;
+    }
+    Check(unsafeRejected, "ZIP traversal rejection");
+}
+finally
+{
+    Directory.Delete(updatePackageRoot, true);
+}
+
+if (Environment.GetEnvironmentVariable("DEVSPACE_STATUS_PET_LIVE_UPDATE_TEST") == "1")
+{
+    using var liveUpdateService = new UpdateService("0.1.0");
+    var liveRelease = await liveUpdateService.CheckAsync(includePrereleases: false);
+    Check(liveRelease is not null, "live GitHub update discovery");
+    if (liveRelease is not null)
+    {
+        var liveInstaller = await liveUpdateService.PrepareInstallerAsync(liveRelease);
+        Check(File.Exists(liveInstaller), "live GitHub package verification");
+        Check(
+            System.Diagnostics.FileVersionInfo.GetVersionInfo(liveInstaller).ProductVersion?.StartsWith(liveRelease.Version, StringComparison.OrdinalIgnoreCase) == true,
+            "live GitHub installer version");
+    }
+}
 
 var darkBubbleSettings = new AppSettings { BubbleTheme = "Dark" };
 darkBubbleSettings.Normalize();
@@ -64,6 +223,37 @@ using (var darkForm = new Form())
     Check(darkForm.BackColor == DarkUiTheme.WindowBackground, "dark settings window background");
     Check(input.BackColor == DarkUiTheme.InputBackground, "dark settings input background");
     Check(button.BackColor == DarkUiTheme.ButtonBackground, "dark settings button background");
+}
+
+var updateUiSettings = new AppSettings { Language = "English" };
+var updateUiStore = new SettingsStore(updateUiSettings);
+var updateUiLocalizer = new Localizer(() => updateUiStore.Current);
+var updateUiSnapshot = DevSpaceSnapshot.Initial("config.json", "serve.log", 7676);
+using (var settingsForm = new SettingsForm(updateUiStore, updateUiLocalizer, updateUiSnapshot))
+{
+    settingsForm.SetUpdateStatus("0.2.1", updateUiLocalizer["UpToDate"]);
+    Check(settingsForm.Controls.Find("CheckUpdatesButton", true).Length == 1, "settings update-check button");
+    Check(settingsForm.Controls.Find("CheckUpdatesOnStartupInput", true).Length == 1, "settings startup update option");
+    Check(settingsForm.Controls.Find("IncludePrereleaseUpdatesInput", true).Length == 1, "settings prerelease option");
+}
+using (var updateUiService = new UpdateService("0.2.0"))
+using (var updateForm = new UpdateForm(
+           updateUiService,
+           new UpdateRelease(
+               "0.2.1",
+               "v0.2.1",
+               "DevSpace Status Pet v0.2.1",
+               "https://example.test/v0.2.1",
+               "Release notes",
+               false,
+               DateTimeOffset.Now,
+               "https://example.test/update.zip",
+               "https://example.test/update.sha256",
+               123),
+           updateUiLocalizer))
+{
+    Check(updateForm.BackColor == DarkUiTheme.WindowBackground, "dark update window background");
+    Check(updateForm.Text == updateUiLocalizer["UpdateAvailableTitle"], "update window localization");
 }
 
 var current = new AppSettings { Language = "English" };
@@ -269,3 +459,29 @@ if (failures.Count > 0)
 
 Console.WriteLine("[OK] DevSpace Status Pet .NET smoke test");
 return 0;
+
+internal sealed class FakeHttpMessageHandler : HttpMessageHandler
+{
+    private readonly IReadOnlyDictionary<string, byte[]> _responses;
+
+    public FakeHttpMessageHandler(IReadOnlyDictionary<string, byte[]> responses)
+    {
+        _responses = responses;
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var url = request.RequestUri?.ToString() ?? string.Empty;
+        if (!_responses.TryGetValue(url, out var bytes))
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(bytes)
+        });
+    }
+}

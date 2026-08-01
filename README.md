@@ -4,7 +4,7 @@
 
 Windows上のDevSpace作業を、タスクトレイとアニメーションするデスクトップペットで確認するモニターです。
 
-> **安定版：v0.2.0（C# / .NET 8・単一EXE）**<br>
+> **安定版：v0.2.1（C# / .NET 8・単一EXE）**<br>
 > 旧PowerShell版のv0.1.0も、ロールバック用としてGitHub Releasesに残しています。
 
 ## 主な機能
@@ -22,13 +22,21 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 - 日本語／English／OS言語自動選択
 - サイズ、透明度、通知時間、停滞判定、吹き出し数を即時変更
 - Windowsログイン時の自動起動
+- GitHub Releasesからの更新確認とSHA-256検証付き手動更新
+- Stable／Prerelease更新チャンネルの選択
 - クラッシュログと診断情報
 
 ## プレビュー
 
-| クラシック | ネオン |
+| クラシック＋並列作業 | ネオン＋並列作業 |
 |---|---|
-| ![Classic theme](docs/classic-preview.svg) | ![Neon theme](docs/neon-preview.svg) |
+| ![Classic parallel workspace preview](docs/preview-classic.png) | ![Neon parallel workspace preview](docs/preview-neon.png) |
+
+| ダーク設定画面 | 安全な更新画面 |
+|---|---|
+| ![Dark settings preview](docs/preview-settings.png) | ![Safe updater preview](docs/preview-updater.png) |
+
+![Dark pet context menu](docs/preview-menu.png)
 
 ## 必要環境
 
@@ -40,7 +48,7 @@ Windows上のDevSpace作業を、タスクトレイとアニメーションす�
 
 ## インストール
 
-1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.2.0-win-x64.zip`をダウンロード
+1. [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)から`DevSpace-Status-Pet-v0.2.1-win-x64.zip`をダウンロード
 2. ZIPを展開
 3. `DevSpaceStatusPet.exe`を実行
 4. 右クリックメニューから**v0.2をインストール／更新**を選択
@@ -111,6 +119,8 @@ VideoShrink
 - 停滞判定時間
 - 通知の有効／無効
 - Windows自動起動
+- 起動時の更新確認
+- Prerelease版も更新対象に含めるか
 
 設定ファイル：
 
@@ -118,6 +128,21 @@ VideoShrink
 %USERPROFILE%\.devspace\devspace-pet-settings.json
 %USERPROFILE%\.devspace\devspace-pet-position.json
 ```
+
+## 更新
+
+タスクトレイまたは設定画面の**更新を確認**から、GitHub Releasesの最新版を確認できます。
+
+更新時は次の順序で検証します。
+
+1. ZIPと`.sha256`をGitHubから取得
+2. SHA-256が一致することを確認
+3. ZIP内の危険なパスを拒否して展開
+4. EXEのバージョンがReleaseと一致することを確認
+5. 現在のEXEをバックアップして入れ替え
+6. 起動に失敗した場合は旧EXEへ復旧
+
+既定ではStable Releaseだけを確認します。設定画面でPrereleaseも対象にできます。自動で勝手に更新はせず、リリースノートを確認して**更新する**を押した場合だけ入れ替えます。
 
 クラッシュログ：
 
@@ -147,6 +172,7 @@ DevSpace本体やDevSpaceのプロジェクトには触れません。
 dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
 dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
 .\scripts\Build-DotNetRelease.ps1
+.\src\DevSpaceStatusPet\bin\Release\net8.0-windows10.0.17763.0\win-x64\DevSpaceStatusPet.exe --capture-previews docs
 ```
 
 タグ`v0.2.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。

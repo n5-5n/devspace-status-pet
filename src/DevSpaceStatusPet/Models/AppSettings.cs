@@ -31,6 +31,9 @@ public sealed class AppSettings
     public int StallMinutes { get; set; } = 30;
     public int MaxBubbles { get; set; } = 4;
     public bool NotificationsEnabled { get; set; } = true;
+    public bool CheckUpdatesOnStartup { get; set; } = true;
+    public bool IncludePrereleaseUpdates { get; set; }
+    public string LastNotifiedUpdateVersion { get; set; } = string.Empty;
 
     public PetTheme ResolvedTheme =>
         Enum.TryParse<PetTheme>(Theme, true, out var value) ? value : PetTheme.Classic;
@@ -56,7 +59,10 @@ public sealed class AppSettings
         CompletionQuietSeconds = CompletionQuietSeconds,
         StallMinutes = StallMinutes,
         MaxBubbles = MaxBubbles,
-        NotificationsEnabled = NotificationsEnabled
+        NotificationsEnabled = NotificationsEnabled,
+        CheckUpdatesOnStartup = CheckUpdatesOnStartup,
+        IncludePrereleaseUpdates = IncludePrereleaseUpdates,
+        LastNotifiedUpdateVersion = LastNotifiedUpdateVersion
     };
 
     public void Normalize()
@@ -75,5 +81,6 @@ public sealed class AppSettings
         CompletionQuietSeconds = Math.Clamp(CompletionQuietSeconds, 10, 300);
         StallMinutes = Math.Clamp(StallMinutes, 1, 240);
         MaxBubbles = Math.Clamp(MaxBubbles, 1, 8);
+        LastNotifiedUpdateVersion = LastNotifiedUpdateVersion?.Trim() ?? string.Empty;
     }
 }

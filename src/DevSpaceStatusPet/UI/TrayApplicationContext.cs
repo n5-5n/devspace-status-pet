@@ -10,6 +10,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly PositionStore _positionStore = new();
     private readonly Localizer _localizer;
     private readonly DevSpaceMonitor _monitor;
+    private readonly UpdateService _updateService = new();
     private readonly NotifyIcon _notifyIcon;
     private readonly Dictionary<ActivityState, Icon> _icons;
     private readonly ContextMenuStrip _trayMenu = new();
@@ -18,6 +19,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _operationItem = new() { Enabled = false };
     private readonly ToolStripMenuItem _elapsedItem = new() { Enabled = false };
     private readonly ToolStripMenuItem _refreshItem = new();
+    private readonly ToolStripMenuItem _checkUpdatesItem = new();
     private readonly ToolStripMenuItem _settingsItem = new();
     private readonly ToolStripMenuItem _openLogItem = new();
     private readonly ToolStripMenuItem _openFolderItem = new();
@@ -29,12 +31,16 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private DevSpaceSnapshot _snapshot;
     private bool _refreshing;
+    private bool _checkingUpdates;
+    private UpdateRelease? _availableUpdate;
+    private bool? _lastCheckedIncludePrereleases;
     private bool _workSessionActive;
     private DateTimeOffset _workSessionStartedAt;
     private DateTimeOffset _lastSessionActivityAt;
     private DateTimeOffset? _lastSeenToolAt;
     private string _lastSessionProjectName = "DevSpace";
     private bool _stallNotificationShown;
+    private Action? _balloonClickAction;
     private ActivityState _previousState = ActivityState.Idle;
 
     public TrayApplicationContext(bool showSettingsOnStart = false)
@@ -66,6 +72,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             _elapsedItem,
             new ToolStripSeparator(),
             _refreshItem,
+            _checkUpdatesItem,
             _settingsItem,
             _openLogItem,
             _openFolderItem,
@@ -81,11 +88,29 @@ public sealed class TrayApplicationContext : ApplicationContext
         _settingsForm = new SettingsForm(_settingsStore, _localizer, _snapshot);
 
         _refreshItem.Click += async (_, _) => await RefreshAsync();
+        _checkUpdatesItem.Click += async (_, _) =>
+        {
+            if (_availableUpdate is not null)
+            {
+                ShowUpdateDialog(_availableUpdate);
+            }
+            else
+            {
+                await CheckForUpdatesAsync(interactive: true);
+            }
+        };
+        _settingsForm.UpdateCheckRequested += async (_, _) => await CheckForUpdatesAsync(interactive: true);
         _settingsItem.Click += (_, _) => ShowSettings();
         _openLogItem.Click += (_, _) => OpenLog();
         _openFolderItem.Click += (_, _) => OpenFolder();
         _installItem.Click += (_, _) => InstallOrUninstall();
         _exitItem.Click += (_, _) => ExitApplication();
+        _notifyIcon.BalloonTipClicked += (_, _) =>
+        {
+            var action = _balloonClickAction;
+            _balloonClickAction = null;
+            action?.Invoke();
+        };
         _notifyIcon.MouseClick += (_, eventArgs) =>
         {
             if (eventArgs.Button == MouseButtons.Left)
@@ -96,6 +121,14 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _settingsStore.Changed += (_, _) =>
         {
+            var includePrereleases = _settingsStore.Current.IncludePrereleaseUpdates;
+            if (_lastCheckedIncludePrereleases.HasValue &&
+                _lastCheckedIncludePrereleases.Value != includePrereleases)
+            {
+                _availableUpdate = null;
+                _lastCheckedIncludePrereleases = null;
+                _settingsForm.SetUpdateStatus(_updateService.CurrentVersion, _localizer["NotChecked"]);
+            }
             UpdateStaticText();
             _petForm.ApplySnapshot(_snapshot);
             _settingsForm.UpdateSnapshot(_snapshot);
@@ -112,6 +145,10 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
         _timer.Start();
         _ = RefreshAsync();
+        if (_settingsStore.Current.CheckUpdatesOnStartup)
+        {
+            _ = CheckForUpdatesAfterStartupAsync();
+        }
     }
 
     private async Task RefreshAsync()
@@ -137,6 +174,103 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
+    private async Task CheckForUpdatesAfterStartupAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(8));
+        if (_petForm.IsDisposed || !_petForm.IsHandleCreated)
+        {
+            return;
+        }
+        await CheckForUpdatesAsync(interactive: false);
+    }
+
+    private async Task CheckForUpdatesAsync(bool interactive)
+    {
+        if (_checkingUpdates)
+        {
+            return;
+        }
+
+        _checkingUpdates = true;
+        _checkUpdatesItem.Enabled = false;
+        _checkUpdatesItem.Text = _localizer["CheckingUpdates"];
+        _settingsForm.SetUpdateCheckBusy(true);
+
+        try
+        {
+            var settings = _settingsStore.Current;
+            var release = await _updateService.CheckAsync(settings.IncludePrereleaseUpdates);
+            _availableUpdate = release;
+            _lastCheckedIncludePrereleases = settings.IncludePrereleaseUpdates;
+
+            if (release is null)
+            {
+                _settingsForm.SetUpdateStatus(_updateService.CurrentVersion, _localizer["UpToDate"]);
+                if (interactive)
+                {
+                    MessageBox.Show(
+                        _settingsForm.Visible ? _settingsForm : _petForm,
+                        _localizer["UpToDate"],
+                        _localizer["AppName"],
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                _settingsForm.SetUpdateStatus(release.Version, _localizer["UpdateAvailableTitle"]);
+                if (interactive)
+                {
+                    ShowUpdateDialog(release);
+                }
+                else if (!settings.LastNotifiedUpdateVersion.Equals(
+                             release.Version,
+                             StringComparison.OrdinalIgnoreCase))
+                {
+                    ShowBalloon(
+                        _localizer["UpdateAvailableTitle"],
+                        _localizer.Get("UpdateAvailableText", release.Version),
+                        ToolTipIcon.Info,
+                        () => ShowUpdateDialog(release));
+                    settings.LastNotifiedUpdateVersion = release.Version;
+                    _settingsStore.Save(settings);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            CrashLogger.Write(exception, "CheckForUpdatesAsync");
+            _settingsForm.SetUpdateStatus(_updateService.CurrentVersion, _localizer["UpdateCheckFailed"]);
+            if (interactive)
+            {
+                MessageBox.Show(
+                    _settingsForm.Visible ? _settingsForm : _petForm,
+                    _localizer.Get("UpdateCheckFailedDetail", exception.Message),
+                    _localizer["AppName"],
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        finally
+        {
+            _checkingUpdates = false;
+            _checkUpdatesItem.Enabled = true;
+            _settingsForm.SetUpdateCheckBusy(false);
+            UpdateStaticText();
+        }
+    }
+
+    private void ShowUpdateDialog(UpdateRelease release)
+    {
+        using var form = new UpdateForm(_updateService, release, _localizer);
+        IWin32Window owner = _settingsForm.Visible ? _settingsForm : _petForm;
+        _ = form.ShowDialog(owner);
+        if (form.InstallerLaunched)
+        {
+            ExitApplication();
+        }
+    }
+
     private void ApplySnapshot(DevSpaceSnapshot snapshot)
     {
         _snapshot = snapshot;
@@ -150,6 +284,9 @@ public sealed class TrayApplicationContext : ApplicationContext
     private void UpdateStaticText()
     {
         _refreshItem.Text = _localizer["Refresh"];
+        _checkUpdatesItem.Text = _availableUpdate is null
+            ? _localizer["CheckUpdates"]
+            : _localizer.Get("UpdateAvailableMenu", _availableUpdate.Version);
         _settingsItem.Text = _localizer["Settings"];
         _openLogItem.Text = _localizer["OpenLog"];
         _openFolderItem.Text = _localizer["OpenFolder"];
@@ -266,8 +403,13 @@ public sealed class TrayApplicationContext : ApplicationContext
             });
     }
 
-    private void ShowBalloon(string title, string text, ToolTipIcon icon)
+    private void ShowBalloon(
+        string title,
+        string text,
+        ToolTipIcon icon,
+        Action? clickAction = null)
     {
+        _balloonClickAction = clickAction;
         _notifyIcon.BalloonTipTitle = title;
         _notifyIcon.BalloonTipText = text;
         _notifyIcon.BalloonTipIcon = icon;
@@ -333,6 +475,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _notifyIcon.Visible = false;
         _petForm.Close();
         _settingsForm.Dispose();
+        _updateService.Dispose();
         _notifyIcon.Dispose();
         _trayMenu.Dispose();
         foreach (var icon in _icons.Values)

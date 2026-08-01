@@ -1,26 +1,44 @@
-# DevSpace Status Pet v0.2.0
+# DevSpace Status Pet v0.2.1
 
-The first stable C# / .NET 8 release of DevSpace Status Pet.
+v0.2.1 adds safe in-app update checking and refreshes the GitHub previews with the current dark UI and parallel-workspace layout.
 
-## Highlights
+## Added
 
-- One self-contained `DevSpaceStatusPet.exe` containing the tray monitor, desktop pet, and settings window.
-- Multiple speech bubbles for parallel DevSpace workspaces, including workspaces that use the same project.
-- Reliable project-name recovery from UTF-8, UTF-16, and UTF-32 DevSpace logs.
-- Completed waiting bubbles expire with the configured completion quiet period.
-- Classic and Neon robot themes.
-- Independent Light and Dark speech-bubble themes.
-- Dark tray menu, pet menu, submenus, and settings window.
-- Japanese, English, and automatic OS-language selection.
-- Immediate settings preview for size, opacity, themes, notifications, timing, and bubble count.
-- Quiet-period completion notifications instead of one notification per tool call.
-- Stall detection, failure notifications, DevSpace stopped state, and crash logging.
-- Portable use, self-installation, Windows startup registration, and self-uninstallation.
-- Automatic reuse of existing v0.1 and v0.2 settings.
+- Checks GitHub Releases for a newer stable version at startup.
+- Manual **Check for updates** actions in the tray menu and settings window.
+- Optional prerelease update channel in settings.
+- Dark update window showing current/latest versions, publication time, and release notes.
+- Download progress for the ZIP package.
+- SHA-256 verification before extracting or installing an update.
+- Safe ZIP extraction that rejects path traversal entries.
+- Executable-version validation before replacing the installed copy.
+- Backup and automatic rollback if replacement or launch fails.
+- One update notification per released version.
+- Reproducible preview capture command for maintainers.
+
+## Updated previews
+
+- Parallel Classic and Neon pet previews.
+- Dark pet context-menu preview.
+- Current dark settings-window preview.
+- New safe-updater preview.
+
+## Validation
+
+- Stable and prerelease semantic-version selection tests.
+- Tampered-checksum rejection test.
+- Unsafe ZIP-entry rejection test.
+- Verified-package extraction and executable-version tests.
+- Live GitHub test against the published v0.2.0 ZIP and SHA-256 assets.
+- Existing log, parallel-workspace, high-DPI, settings, installation, and dark-UI regression tests.
 
 ## Install or update
 
-1. Download `DevSpace-Status-Pet-v0.2.0-win-x64.zip`.
+Existing v0.2 users can open the tray menu or settings window and choose **Check for updates**.
+
+For a manual installation:
+
+1. Download `DevSpace-Status-Pet-v0.2.1-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `DevSpaceStatusPet.exe` and select **Install / update v0.2**, or run:
 
@@ -28,19 +46,4 @@ The first stable C# / .NET 8 release of DevSpace Status Pet.
 DevSpaceStatusPet.exe --install
 ```
 
-Existing alpha and v0.1 settings are preserved. The application remains installed under:
-
-```text
-%LOCALAPPDATA%\DevSpaceStatusPetV2
-```
-
-## Requirements
-
-- Windows 10 or Windows 11, x64
-- `@waishnav/devspace` running on the same computer
-
-No separate .NET Runtime installation or PowerShell execution-policy change is required.
-
-## Legacy release
-
-v0.1.0 remains available as the legacy PowerShell release and rollback option.
+Existing settings and the saved pet position are preserved.

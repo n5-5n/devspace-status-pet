@@ -219,9 +219,25 @@ public sealed class PetForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
+        RenderContent(e.Graphics);
+    }
+
+    internal Bitmap RenderPreview(Color background)
+    {
+        var bitmap = new Bitmap(
+            Math.Max(1, ClientSize.Width),
+            Math.Max(1, ClientSize.Height),
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.Clear(background);
+        RenderContent(graphics);
+        return bitmap;
+    }
+
+    private void RenderContent(Graphics graphics)
+    {
         var settings = _settingsStore.Current;
         var activities = VisibleActivities(settings);
-        var graphics = e.Graphics;
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
