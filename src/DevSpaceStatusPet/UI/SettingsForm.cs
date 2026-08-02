@@ -7,6 +7,11 @@ namespace DevSpaceStatusPet.UI;
 
 public sealed class SettingsForm : Form
 {
+    private const int PreferredClientWidth = 620;
+    private const int PreferredClientHeight = 850;
+    private const int MinimumClientHeight = 480;
+    private const int WorkingAreaMargin = 24;
+
     private readonly SettingsStore _settingsStore;
     private readonly Localizer _localizer;
     private readonly ComboBox _languageBox = new() { Name = "LanguageInput", DropDownStyle = ComboBoxStyle.DropDownList };
@@ -53,6 +58,12 @@ public sealed class SettingsForm : Form
     private readonly Button _closeButton = new();
     private readonly Button _openLogsButton = new();
     private readonly Button _checkUpdatesButton = new() { Name = "CheckUpdatesButton" };
+    private readonly Panel _viewport = new()
+    {
+        Name = "SettingsViewport",
+        Dock = DockStyle.Fill,
+        AutoScroll = true
+    };
     private DevSpaceSnapshot _snapshot;
     private bool _reloadingControls;
     private string _latestVersionText;
@@ -72,22 +83,24 @@ public sealed class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = true;
-        ClientSize = new Size(620, 775);
+        ClientSize = new Size(PreferredClientWidth, PreferredClientHeight);
         Font = new Font("Segoe UI", 9f);
         BackColor = DarkUiTheme.WindowBackground;
         ForeColor = DarkUiTheme.Foreground;
 
         var root = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
             Padding = new Padding(16),
             ColumnCount = 2,
             RowCount = 22,
-            AutoSize = false
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        Controls.Add(root);
+        Controls.Add(_viewport);
+        _viewport.Controls.Add(root);
 
         AddRow(root, 0, _statusLabel, _statusValue);
         AddRow(root, 1, _portLabel, _portValue);
@@ -180,10 +193,26 @@ public sealed class SettingsForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        FitToWorkingArea();
         DarkUiTheme.ApplyWindow(this);
         DarkUiTheme.ApplyImmersiveDarkTitleBar(this);
         Reload();
         Activate();
+    }
+
+    private void FitToWorkingArea()
+    {
+        var workingArea = Screen.FromControl(this).WorkingArea;
+        var nonClientHeight = Math.Max(0, Height - ClientSize.Height);
+        var maximumClientHeight = Math.Max(
+            MinimumClientHeight,
+            workingArea.Height - nonClientHeight - WorkingAreaMargin);
+        var targetClientHeight = Math.Min(PreferredClientHeight, maximumClientHeight);
+        ClientSize = new Size(PreferredClientWidth, targetClientHeight);
+
+        var x = workingArea.Left + Math.Max(0, (workingArea.Width - Width) / 2);
+        var y = workingArea.Top + Math.Max(0, (workingArea.Height - Height) / 2);
+        Location = new Point(x, y);
     }
 
     private void Reload()
