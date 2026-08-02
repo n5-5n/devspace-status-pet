@@ -2,6 +2,21 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.4-alpha.2] - 2026-08-03
+
+### Fixed
+
+- Detects and recovers native TopMost loss even when the WinForms `TopMost` property remains enabled.
+- Reapplies native TopMost immediately when the pet window is first shown.
+- Records both managed and native TopMost state in visibility-recovery diagnostics.
+
+### Tested
+
+- Added live fault injection for off-screen movement in both directions, minimize, hide, native TopMost loss, and duplicate launches.
+- Added a 36-combination rendering matrix across robot themes, bubble themes, bubble designs, and scale limits.
+- Added malformed settings, runtime-log rotation, GDI/USER resource, package privacy, Defender, and vulnerable-package checks.
+- Preserves and restores an already-running installed pet around isolated installer smoke tests.
+
 ## [0.1.4-alpha.1] - 2026-08-01
 
 ### Added

@@ -17,7 +17,8 @@ $files = @(
     'scripts\Rebuild-AllNormalizedHistory.ps1',
     'tests\InstallSmoke.ps1',
     'tests\DotNetInstallSmoke.ps1',
-    'tests\UiLiveSettingsSmoke.ps1'
+    'tests\UiLiveSettingsSmoke.ps1',
+    'tests\UiRecoverySmoke.ps1'
 )
 
 $failed = $false

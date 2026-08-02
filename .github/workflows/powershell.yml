@@ -30,6 +30,10 @@ jobs:
         shell: powershell
         run: dotnet build .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj -c Release -warnaserror
 
+      - name: Verify .NET formatting
+        shell: powershell
+        run: dotnet format .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj --verify-no-changes --no-restore
+
       - name: Run .NET smoke tests
         shell: powershell
         run: dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csproj -c Release
@@ -51,3 +55,11 @@ jobs:
       - name: Smoke-test .NET self-install and self-uninstall
         shell: powershell
         run: .\tests\DotNetInstallSmoke.ps1 -ExecutablePath .\artifacts\dotnet-current\DevSpaceStatusPet.exe
+
+      - name: Smoke-test live settings
+        shell: powershell
+        run: .\tests\UiLiveSettingsSmoke.ps1 -ExecutablePath .\artifacts\dotnet-current\DevSpaceStatusPet.exe
+
+      - name: Smoke-test live recovery and stability
+        shell: powershell
+        run: .\tests\UiRecoverySmoke.ps1 -ExecutablePath .\artifacts\dotnet-current\DevSpaceStatusPet.exe -StabilitySeconds 10

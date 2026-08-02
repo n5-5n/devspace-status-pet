@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.IO.Compression;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -275,6 +276,23 @@ Check(localizer.State(ActivityState.Working) == "作業中", "Japanese localizat
 Check(localizer["ShowRecoverPet"] == "ペットを表示／復旧", "pet recovery menu localization");
 Check(AppPaths.RuntimeLogPath.EndsWith("runtime.log", StringComparison.OrdinalIgnoreCase), "runtime diagnostics path");
 Check(!LayeredWindowRenderer.IsCloaked(IntPtr.Zero), "zero-handle cloak check");
+Check(!LayeredWindowRenderer.IsTopMost(IntPtr.Zero), "zero-handle topmost check");
+using (var topMostPet = new PetForm(
+           new SettingsStore(new AppSettings()),
+           new PositionStore(null),
+           new Localizer(() => new AppSettings())))
+{
+    topMostPet.Show();
+    Application.DoEvents();
+    Check(LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost initial state");
+    NativeWindowTest.SetTopMost(topMostPet.Handle, enabled: false);
+    Application.DoEvents();
+    Check(topMostPet.TopMost && !LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost loss simulation");
+    topMostPet.VerifyVisibility("smoke-native-topmost");
+    Application.DoEvents();
+    Check(LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost watchdog recovery");
+    topMostPet.Close();
+}
 
 var tempRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-Smoke-{Environment.ProcessId}");
 Directory.CreateDirectory(tempRoot);
@@ -573,6 +591,98 @@ using (var renderPet = new PetForm(renderStore, new PositionStore(null), renderL
     Check(neonSampledColors.Count >= 20, "neon monitor-card visual rendering");
 }
 
+var boundarySettings = new AppSettings
+{
+    Theme = "invalid-theme",
+    BubbleTheme = "invalid-bubble-theme",
+    BubbleStyle = "invalid-bubble-style",
+    Language = "invalid-language",
+    Scale = -10,
+    Opacity = 5,
+    CompletionQuietSeconds = 1,
+    StallMinutes = 999,
+    MaxBubbles = 99,
+    LastNotifiedUpdateVersion = "  0.1.4  "
+};
+boundarySettings.Normalize();
+Check(boundarySettings.ResolvedTheme == PetTheme.Classic, "invalid pet theme fallback");
+Check(boundarySettings.ResolvedBubbleTheme == BubbleColorTheme.Light, "invalid bubble theme fallback");
+Check(boundarySettings.ResolvedBubbleStyle == BubbleVisualStyle.Speech, "invalid bubble style fallback");
+Check(boundarySettings.LanguagePreference == UiLanguagePreference.Auto, "invalid language fallback");
+Check(Math.Abs(boundarySettings.Scale - 0.6) < 0.001, "minimum scale clamp");
+Check(Math.Abs(boundarySettings.Opacity - 1.0) < 0.001, "maximum opacity clamp");
+Check(boundarySettings.CompletionQuietSeconds == 10, "minimum quiet-time clamp");
+Check(boundarySettings.StallMinutes == 240, "maximum stall-time clamp");
+Check(boundarySettings.MaxBubbles == 8, "maximum bubble-count clamp");
+Check(boundarySettings.LastNotifiedUpdateVersion == "0.1.4", "update-version trimming");
+
+var renderMatrixFailures = new List<string>();
+var renderMatrixCount = 0;
+foreach (var theme in Enum.GetValues<PetTheme>())
+{
+    foreach (var bubbleTheme in Enum.GetValues<BubbleColorTheme>())
+    {
+        foreach (var bubbleStyle in Enum.GetValues<BubbleVisualStyle>())
+        {
+            foreach (var scale in new[] { 0.6, 1.15, 2.5 })
+            {
+                renderMatrixCount++;
+                try
+                {
+                    var matrixSettings = new AppSettings
+                    {
+                        Theme = theme.ToString(),
+                        BubbleTheme = bubbleTheme.ToString(),
+                        BubbleStyle = bubbleStyle.ToString(),
+                        Language = UiLanguagePreference.English.ToString(),
+                        Scale = scale,
+                        MaxBubbles = 8
+                    };
+                    var matrixStore = new SettingsStore(matrixSettings);
+                    using var matrixPet = new PetForm(
+                        matrixStore,
+                        new PositionStore(null),
+                        new Localizer(() => matrixStore.Current));
+                    matrixPet.ApplySnapshot(renderSnapshot);
+                    using var matrixBitmap = matrixPet.RenderTransparentPreview();
+                    var expectedSize = PetForm.CalculateClientSize(matrixSettings, renderActivities.Length);
+                    if (matrixBitmap.Size != expectedSize)
+                    {
+                        renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: size {matrixBitmap.Size} != {expectedSize}");
+                        continue;
+                    }
+
+                    var hasVisibleSample = false;
+                    for (var y = 0; y < matrixBitmap.Height && !hasVisibleSample; y += Math.Max(1, matrixBitmap.Height / 24))
+                    {
+                        for (var x = 0; x < matrixBitmap.Width; x += Math.Max(1, matrixBitmap.Width / 24))
+                        {
+                            if (matrixBitmap.GetPixel(x, y).A > 0)
+                            {
+                                hasVisibleSample = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hasVisibleSample)
+                    {
+                        renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: no visible sample");
+                    }
+                }
+                catch (Exception exception)
+                {
+                    renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: {exception.Message}");
+                }
+            }
+        }
+    }
+}
+foreach (var matrixFailure in renderMatrixFailures)
+{
+    Console.WriteLine($"[INFO] render matrix failure: {matrixFailure}");
+}
+Check(renderMatrixCount == 36 && renderMatrixFailures.Count == 0, "36-combination rendering matrix");
+
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");
 
@@ -599,6 +709,38 @@ if (failures.Count > 0)
 
 Console.WriteLine("[OK] DevSpace Status Pet .NET smoke test");
 return 0;
+
+internal static class NativeWindowTest
+{
+    private static readonly IntPtr TopMost = new(-1);
+    private static readonly IntPtr NotTopMost = new(-2);
+    private const uint NoMoveNoSizeNoActivate = 0x0001 | 0x0002 | 0x0010;
+
+    public static void SetTopMost(IntPtr windowHandle, bool enabled)
+    {
+        if (!SetWindowPos(
+                windowHandle,
+                enabled ? TopMost : NotTopMost,
+                0,
+                0,
+                0,
+                0,
+                NoMoveNoSizeNoActivate))
+        {
+            throw new InvalidOperationException("Could not change the test window topmost state.");
+        }
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr windowHandle,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+}
 
 internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 {

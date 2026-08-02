@@ -8,6 +8,14 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $executable = (Resolve-Path -LiteralPath $ExecutablePath).Path
+$existingExecutablePaths = @(
+    Get-Process DevSpaceStatusPet -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            try { $_.Path } catch { $null }
+        } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique
+)
 $tempRoot = Join-Path $env:TEMP "DevSpaceStatusPetV2-Smoke-$PID"
 $installDirectory = Join-Path $tempRoot 'Installed App With Spaces'
 $shortcutPath = Join-Path $tempRoot 'DevSpace Status Pet Test.lnk'
@@ -83,4 +91,20 @@ finally {
     Remove-Item Env:DEVSPACE_STATUS_PET_INSTALL_DIR -ErrorAction SilentlyContinue
     Remove-Item Env:DEVSPACE_STATUS_PET_SHORTCUT_PATH -ErrorAction SilentlyContinue
     Remove-Item Env:DEVSPACE_STATUS_PET_RUN_VALUE -ErrorAction SilentlyContinue
+
+    foreach ($path in $existingExecutablePaths) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
+        $alreadyRunning = @(
+            Get-Process DevSpaceStatusPet -ErrorAction SilentlyContinue |
+                Where-Object {
+                    try { $_.Path -eq $path } catch { $false }
+                }
+        ).Count -gt 0
+        if (-not $alreadyRunning) {
+            Start-Process -FilePath $path | Out-Null
+        }
+    }
 }

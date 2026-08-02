@@ -30,6 +30,10 @@ jobs:
         shell: powershell
         run: .\tests\ParseScripts.ps1
 
+      - name: Verify .NET formatting
+        shell: powershell
+        run: dotnet format .\src\DevSpaceStatusPet\DevSpaceStatusPet.csproj --verify-no-changes --no-restore
+
       - name: Build .NET release package
         shell: powershell
         run: .\scripts\Build-DotNetRelease.ps1 | Format-List
@@ -40,6 +44,14 @@ jobs:
           $version = [System.IO.File]::ReadAllText("$PWD\DOTNET_VERSION").Trim()
           $exe = ".\artifacts\DevSpace-Status-Pet-v$version-win-x64-publish\DevSpaceStatusPet.exe"
           .\tests\DotNetInstallSmoke.ps1 -ExecutablePath $exe
+
+      - name: Smoke-test live settings and recovery
+        shell: powershell
+        run: |
+          $version = [System.IO.File]::ReadAllText("$PWD\DOTNET_VERSION").Trim()
+          $exe = ".\artifacts\DevSpace-Status-Pet-v$version-win-x64-publish\DevSpaceStatusPet.exe"
+          .\tests\UiLiveSettingsSmoke.ps1 -ExecutablePath $exe
+          .\tests\UiRecoverySmoke.ps1 -ExecutablePath $exe -StabilitySeconds 10
 
       - name: Create GitHub release
         shell: powershell

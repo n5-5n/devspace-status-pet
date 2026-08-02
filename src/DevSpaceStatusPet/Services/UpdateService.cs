@@ -227,13 +227,13 @@ public sealed class UpdateService : IDisposable
     public static Process LaunchInstaller(string executablePath)
     {
         return Process.Start(new ProcessStartInfo(
-                   executablePath,
-                   "--install --silent --cleanup-source")
-               {
-                   UseShellExecute = true,
-                   WorkingDirectory = Path.GetDirectoryName(executablePath) ?? Path.GetTempPath()
-               })
-               ?? throw new InvalidOperationException("Could not start the update installer.");
+            executablePath,
+            "--install --silent --cleanup-source")
+        {
+            UseShellExecute = true,
+            WorkingDirectory = Path.GetDirectoryName(executablePath) ?? Path.GetTempPath()
+        })
+        ?? throw new InvalidOperationException("Could not start the update installer.");
     }
 
     internal static UpdateRelease? SelectLatestRelease(

@@ -147,6 +147,8 @@ public sealed class PetForm : Form
         {
             ApplySettings();
             RestorePosition();
+            TopMost = false;
+            TopMost = true;
             RenderLayeredWindow();
             _animationTimer.Start();
         };
@@ -355,7 +357,13 @@ public sealed class PetForm : Form
 
         var intersectsWorkingArea = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds));
         var cloaked = IsHandleCreated && LayeredWindowRenderer.IsCloaked(Handle);
-        if (!Visible || WindowState != FormWindowState.Normal || !TopMost || !intersectsWorkingArea || cloaked)
+        var nativeTopMost = IsHandleCreated && LayeredWindowRenderer.IsTopMost(Handle);
+        if (!Visible ||
+            WindowState != FormWindowState.Normal ||
+            !TopMost ||
+            !nativeTopMost ||
+            !intersectsWorkingArea ||
+            cloaked)
         {
             RecoverVisibility(
                 cloaked ? $"{reason}:cloaked" : reason,
@@ -405,7 +413,8 @@ public sealed class PetForm : Form
             _renderFailureCount = 0;
             RuntimeLogger.Write(
                 "pet-window-recovered",
-                $"reason={reason}; before={before}; after={Bounds}; visible={Visible}; topmost={TopMost}");
+                $"reason={reason}; before={before}; after={Bounds}; visible={Visible}; " +
+                $"topmost={TopMost}; nativeTopmost={LayeredWindowRenderer.IsTopMost(Handle)}");
         }
         catch (Exception exception)
         {
