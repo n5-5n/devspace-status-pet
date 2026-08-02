@@ -196,14 +196,6 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 
 Pushing a `v0.x.x` tag runs Windows builds, smoke tests, and isolated self-install/self-uninstall validation before publishing the ZIP and SHA-256 checksum to GitHub Releases. Versions with a suffix are published as prereleases; plain versions are published as stable releases.
 
-## Versioning policy
-
-Each independent update increments the patch number by one, for example `v0.1.1 → v0.1.2 → v0.1.3`.
-
-While the same update is being tested, the base version stays unchanged and only the prerelease suffix advances, for example `alpha.1 → alpha.2 → alpha.3`. The stable release removes the alpha suffix from that same base version.
-
-Historical releases were normalized retroactively: `v0.2.0 series → v0.1.1 series`, `v0.2.1 → v0.1.2`, and `v0.3.0-alpha series → v0.1.3-alpha series`. See [`VERSIONING.md`](VERSIONING.md) for the complete mapping and policy.
-
 ## Legacy PowerShell release
 
 The PowerShell v0.1.0 release remains available on GitHub Releases. The current .NET release reads its existing theme, language, bubble, and position settings automatically.
