@@ -25,6 +25,18 @@ void Check(bool condition, string name)
     }
 }
 
+static IEnumerable<Control> EnumerateControls(Control root)
+{
+    foreach (Control child in root.Controls)
+    {
+        yield return child;
+        foreach (var descendant in EnumerateControls(child))
+        {
+            yield return descendant;
+        }
+    }
+}
+
 var migrated = JsonSerializer.Deserialize<AppSettings>(
     """
     {
@@ -252,6 +264,66 @@ using (var settingsForm = new SettingsForm(updateUiStore, updateUiLocalizer, upd
     Check(settingsForm.Controls.Find("BubbleStyleInput", true).Length == 1, "settings bubble-design option");
     var languageInput = settingsForm.Controls.Find("LanguageInput", true).OfType<ComboBox>().Single();
     Check(languageInput.Items.Count == 4, "settings simplified Chinese option");
+}
+var chineseUiSettings = new AppSettings { Language = UiLanguagePreference.ChineseSimplified.ToString() };
+var chineseUiStore = new SettingsStore(chineseUiSettings);
+var chineseUiLocalizer = new Localizer(() => chineseUiStore.Current);
+using (var chineseSettingsForm = new SettingsForm(chineseUiStore, chineseUiLocalizer, updateUiSnapshot))
+{
+    chineseSettingsForm.Show();
+    Application.DoEvents();
+    var clientBounds = chineseSettingsForm.RectangleToScreen(chineseSettingsForm.ClientRectangle);
+    clientBounds.Inflate(2, 2);
+    var viewport = chineseSettingsForm.Controls.Find("SettingsViewport", true).OfType<Panel>().Single();
+    var workingArea = Screen.FromControl(chineseSettingsForm).WorkingArea;
+    var visibleControls = EnumerateControls(chineseSettingsForm)
+        .Where(control =>
+            control.Visible &&
+            control.Width > 0 &&
+            control.Height > 0 &&
+            control.Controls.Count == 0)
+        .ToArray();
+    var clippedControls = visibleControls
+        .Where(control => !clientBounds.Contains(control.RectangleToScreen(control.ClientRectangle)))
+        .Select(control =>
+        {
+            var name = string.IsNullOrWhiteSpace(control.Name) ? control.GetType().Name : control.Name;
+            return $"{name}={control.RectangleToScreen(control.ClientRectangle)}";
+        })
+        .ToArray();
+    Check(chineseSettingsForm.Text.Contains("设置", StringComparison.Ordinal), "simplified Chinese settings title");
+    Check(
+        visibleControls.All(control => !control.Text.Contains('\uFFFD')),
+        "simplified Chinese settings text encoding");
+    var contentFitsWithoutScrolling = viewport.DisplayRectangle.Height <= viewport.ClientSize.Height;
+    Check(
+        workingArea.Contains(chineseSettingsForm.Bounds),
+        "settings window fits monitor working area");
+    Check(
+        !contentFitsWithoutScrolling || clippedControls.Length == 0,
+        "simplified Chinese settings controls fit normal window");
+    Check(
+        contentFitsWithoutScrolling || viewport.VerticalScroll.Visible,
+        "constrained settings window enables vertical scrolling");
+    if (contentFitsWithoutScrolling && clippedControls.Length > 0)
+    {
+        Console.WriteLine($"[INFO] Chinese settings client bounds: {clientBounds}");
+        Console.WriteLine($"[INFO] clipped Chinese settings controls: {string.Join(", ", clippedControls)}");
+    }
+
+    chineseSettingsForm.ClientSize = new Size(620, 600);
+    Application.DoEvents();
+    Check(
+        viewport.DisplayRectangle.Height > viewport.ClientSize.Height,
+        "low-resolution settings viewport enables vertical scrolling");
+    viewport.AutoScrollPosition = new Point(0, viewport.DisplayRectangle.Height);
+    Application.DoEvents();
+    var updateButton = chineseSettingsForm.Controls.Find("CheckUpdatesButton", true).Single();
+    var viewportBounds = viewport.RectangleToScreen(viewport.ClientRectangle);
+    Check(
+        viewportBounds.IntersectsWith(updateButton.RectangleToScreen(updateButton.ClientRectangle)),
+        "low-resolution settings can reach bottom actions");
+    chineseSettingsForm.Close();
 }
 using (var updateUiService = new UpdateService("0.1.1"))
 using (var updateForm = new UpdateForm(
@@ -662,26 +734,33 @@ Check(boundarySettings.LastNotifiedUpdateVersion == "0.1.4", "update-version tri
 
 var renderMatrixFailures = new List<string>();
 var renderMatrixCount = 0;
-foreach (var theme in Enum.GetValues<PetTheme>())
+foreach (var language in new[]
+         {
+             UiLanguagePreference.Japanese,
+             UiLanguagePreference.English,
+             UiLanguagePreference.ChineseSimplified
+         })
 {
-    foreach (var bubbleTheme in Enum.GetValues<BubbleColorTheme>())
+    foreach (var theme in Enum.GetValues<PetTheme>())
     {
-        foreach (var bubbleStyle in Enum.GetValues<BubbleVisualStyle>())
+        foreach (var bubbleTheme in Enum.GetValues<BubbleColorTheme>())
         {
-            foreach (var scale in new[] { 0.6, 1.15, 2.5 })
+            foreach (var bubbleStyle in Enum.GetValues<BubbleVisualStyle>())
             {
-                renderMatrixCount++;
-                try
+                foreach (var scale in new[] { 0.6, 1.15, 2.5 })
                 {
-                    var matrixSettings = new AppSettings
+                    renderMatrixCount++;
+                    try
                     {
-                        Theme = theme.ToString(),
-                        BubbleTheme = bubbleTheme.ToString(),
-                        BubbleStyle = bubbleStyle.ToString(),
-                        Language = UiLanguagePreference.English.ToString(),
-                        Scale = scale,
-                        MaxBubbles = 8
-                    };
+                        var matrixSettings = new AppSettings
+                        {
+                            Theme = theme.ToString(),
+                            BubbleTheme = bubbleTheme.ToString(),
+                            BubbleStyle = bubbleStyle.ToString(),
+                            Language = language.ToString(),
+                            Scale = scale,
+                            MaxBubbles = 8
+                        };
                     var matrixStore = new SettingsStore(matrixSettings);
                     using var matrixPet = new PetForm(
                         matrixStore,
@@ -695,7 +774,7 @@ foreach (var theme in Enum.GetValues<PetTheme>())
                         Screen.FromRectangle(matrixPet.Bounds).WorkingArea.Size);
                     if (matrixBitmap.Size != expectedSize)
                     {
-                        renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: size {matrixBitmap.Size} != {expectedSize}");
+                        renderMatrixFailures.Add($"{language}/{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: size {matrixBitmap.Size} != {expectedSize}");
                         continue;
                     }
 
@@ -713,22 +792,23 @@ foreach (var theme in Enum.GetValues<PetTheme>())
                     }
                     if (!hasVisibleSample)
                     {
-                        renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: no visible sample");
+                        renderMatrixFailures.Add($"{language}/{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: no visible sample");
                     }
                 }
                 catch (Exception exception)
                 {
-                    renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: {exception.Message}");
+                    renderMatrixFailures.Add($"{language}/{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: {exception.Message}");
                 }
             }
         }
     }
 }
+}
 foreach (var matrixFailure in renderMatrixFailures)
 {
     Console.WriteLine($"[INFO] render matrix failure: {matrixFailure}");
 }
-Check(renderMatrixCount == 36 && renderMatrixFailures.Count == 0, "36-combination rendering matrix");
+Check(renderMatrixCount == 108 && renderMatrixFailures.Count == 0, "108-combination multilingual rendering matrix");
 
 var lowResolutionSettings = new AppSettings
 {

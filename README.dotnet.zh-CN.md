@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.5-alpha.1
+# DevSpace Status Pet v0.1.5-alpha.2
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-一个面向 Windows 的 DevSpace 状态监视器，通过系统托盘图标和桌面宠物显示工作状态。v0.1.5-alpha.1 是加入完整简体中文界面、中国系统语言自动识别和中文文档的 Prerelease。
+一个面向 Windows 的 DevSpace 状态监视器，通过系统托盘图标和桌面宠物显示工作状态。v0.1.5-alpha.2 是加入完整简体中文界面、中国系统语言自动识别、中文文档，并修复设置窗口底部按钮被裁切问题的 Prerelease。
 
 ## 系统要求
 

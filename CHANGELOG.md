@@ -2,6 +2,20 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.5-alpha.2] - 2026-08-03
+
+### Fixed
+
+- Prevented the update-status row and bottom action buttons from being clipped by the fixed settings-window height.
+- Increased the normal settings-window height so all actions fit without scrolling.
+- Added an automatically constrained, vertically scrollable settings viewport for low-resolution working areas.
+
+### Tested
+
+- Expanded the render matrix from 36 to 108 combinations across Japanese, English, and Simplified Chinese.
+- Added Simplified Chinese settings-title, text-encoding, control-fit, and low-resolution scrolling checks.
+- Repeated live Simplified Chinese language switching, two-minute rendering, fault injection, and resource monitoring.
+
 ## [0.1.5-alpha.1] - 2026-08-03
 
 ### Added

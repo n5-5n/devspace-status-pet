@@ -5,7 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.1.4 (C# / .NET 8, display self-recovery, and diagnostics)**<br>
-> **Development build: v0.1.5-alpha.1 (Simplified Chinese UI and README)**<br>
+> **Development build: v0.1.5-alpha.2 (Simplified Chinese UI and settings-layout fix)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features

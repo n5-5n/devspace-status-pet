@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.5-alpha.1
+# DevSpace Status Pet v0.1.5-alpha.2
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.5-alpha.1 is a prerelease that adds a complete Simplified Chinese UI, automatic Chinese OS detection, and Chinese documentation.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.5-alpha.2 is a prerelease that adds a complete Simplified Chinese UI, automatic Chinese OS detection, Chinese documentation, and a fix for clipped settings actions.
 
 ## Requirements
 
