@@ -8,12 +8,15 @@ All notable changes to DevSpace Status Pet are documented here.
 
 - Detects and recovers native TopMost loss even when the WinForms `TopMost` property remains enabled.
 - Reapplies native TopMost immediately when the pet window is first shown.
+- Automatically reduces the effective render scale when the requested layout would exceed the current monitor working area.
+- Refits the pet after monitor moves and visibility recovery while preserving the user's requested scale setting.
 - Records both managed and native TopMost state in visibility-recovery diagnostics.
 
 ### Tested
 
 - Added live fault injection for off-screen movement in both directions, minimize, hide, native TopMost loss, and duplicate launches.
 - Added a 36-combination rendering matrix across robot themes, bubble themes, bubble designs, and scale limits.
+- Added a 1024x768 regression test for a requested 250% scale.
 - Added malformed settings, runtime-log rotation, GDI/USER resource, package privacy, Defender, and vulnerable-package checks.
 - Preserves and restores an already-running installed pet around isolated installer smoke tests.
 

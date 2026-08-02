@@ -645,7 +645,10 @@ foreach (var theme in Enum.GetValues<PetTheme>())
                         new Localizer(() => matrixStore.Current));
                     matrixPet.ApplySnapshot(renderSnapshot);
                     using var matrixBitmap = matrixPet.RenderTransparentPreview();
-                    var expectedSize = PetForm.CalculateClientSize(matrixSettings, renderActivities.Length);
+                    var expectedSize = PetForm.CalculateFittedClientSize(
+                        matrixSettings,
+                        renderActivities.Length,
+                        Screen.FromRectangle(matrixPet.Bounds).WorkingArea.Size);
                     if (matrixBitmap.Size != expectedSize)
                     {
                         renderMatrixFailures.Add($"{theme}/{bubbleTheme}/{bubbleStyle}/{scale}: size {matrixBitmap.Size} != {expectedSize}");
@@ -682,6 +685,31 @@ foreach (var matrixFailure in renderMatrixFailures)
     Console.WriteLine($"[INFO] render matrix failure: {matrixFailure}");
 }
 Check(renderMatrixCount == 36 && renderMatrixFailures.Count == 0, "36-combination rendering matrix");
+
+var lowResolutionSettings = new AppSettings
+{
+    Scale = 2.5,
+    BubbleStyle = BubbleVisualStyle.MonitorCardClean.ToString(),
+    MaxBubbles = 8
+};
+var lowResolutionRawSize = PetForm.CalculateClientSize(lowResolutionSettings, renderActivities.Length);
+var lowResolutionFittedSize = PetForm.CalculateFittedClientSize(
+    lowResolutionSettings,
+    renderActivities.Length,
+    new Size(1024, 768));
+Check(
+    lowResolutionFittedSize.Width <= 1008 && lowResolutionFittedSize.Height <= 752,
+    "low-resolution layout fits working area");
+Check(
+    lowResolutionFittedSize.Width < lowResolutionRawSize.Width ||
+    lowResolutionFittedSize.Height < lowResolutionRawSize.Height,
+    "oversized layout reduces effective scale");
+Check(
+    Math.Abs(PetForm.CalculateEffectiveScale(
+        new AppSettings { Scale = 1.15 },
+        1,
+        new Size(1920, 1080)) - 1.15) < 0.001,
+    "normal layout preserves requested scale");
 
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");

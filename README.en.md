@@ -24,6 +24,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
+- Automatically fits oversized layouts inside the current monitor
 - Windows startup registration
 - Recovers the pet after monitor resume, display changes, or off-screen movement
 - **Show / recover pet** command in the tray menu

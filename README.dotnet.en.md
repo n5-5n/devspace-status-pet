@@ -43,6 +43,7 @@ Existing PowerShell and .NET settings are reused automatically.
 - Dark context menus and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate size, opacity, timing, and bubble-count changes
+- Automatically fits oversized layouts inside the current monitor
 - GitHub Release discovery and manual updates with SHA-256 verification
 - Stable or optional prerelease update channels
 - Display self-recovery after monitor resume, display changes, or off-screen movement
