@@ -66,8 +66,10 @@ Copy-Item -LiteralPath $publishedFiles[0].FullName -Destination (Join-Path $stag
 foreach ($file in @(
     'README.md',
     'README.en.md',
+    'README.zh-CN.md',
     'README.dotnet.md',
     'README.dotnet.en.md',
+    'README.dotnet.zh-CN.md',
     'RELEASE_NOTES.md',
     'LICENSE',
     'CHANGELOG.md',

@@ -259,6 +259,50 @@ try {
         throw "Bubble design was not restored. Expected $expectedRestoredStyle, got $($restoredStyleSettings.BubbleStyle)."
     }
 
+    $languageCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+        'LanguageInput')
+    $languageInput = $settingsWindow.FindFirst(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        $languageCondition)
+    if ($null -eq $languageInput) {
+        throw 'LanguageInput was not found through UI Automation.'
+    }
+
+    $languageSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    $originalLanguage = if ($languageSettings.PSObject.Properties.Name -contains 'Language') {
+        [string]$languageSettings.Language
+    }
+    else {
+        'Auto'
+    }
+    $titleBeforeLanguageChange = $settingsWindow.Current.Name
+    $languageInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait('{END}')
+    Start-Sleep -Seconds 2
+    $chineseSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$chineseSettings.Language -ne 'ChineseSimplified') {
+        throw "Simplified Chinese was not saved immediately. Got $($chineseSettings.Language)."
+    }
+    if ($originalLanguage -ne 'ChineseSimplified' -and
+        $settingsWindow.Current.Name -eq $titleBeforeLanguageChange) {
+        throw "Settings window title did not change after selecting Simplified Chinese."
+    }
+
+    $restoreLanguageKeys = switch ($originalLanguage) {
+        'Japanese' { '{HOME}{DOWN}' }
+        'English' { '{HOME}{DOWN}{DOWN}' }
+        'ChineseSimplified' { '{END}' }
+        default { '{HOME}' }
+    }
+    $languageInput.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait($restoreLanguageKeys)
+    Start-Sleep -Seconds 2
+    $restoredLanguageSettings = [System.IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json
+    if ([string]$restoredLanguageSettings.Language -ne $originalLanguage) {
+        throw "Language was not restored. Expected $originalLanguage, got $($restoredLanguageSettings.Language)."
+    }
+
     [pscustomobject]@{
         OriginalScale = $original
         TestScale = $testValue
@@ -278,6 +322,9 @@ try {
         BubbleStyleCleanHeight = [Math]::Round($cleanStyleBounds.Height, 1)
         BubbleStyleSpeechHeight = [Math]::Round($speechStyleBounds.Height, 1)
         BubbleStyleRestored = [string]$restoredStyleSettings.BubbleStyle
+        LanguageBefore = $originalLanguage
+        LanguageTest = [string]$chineseSettings.Language
+        LanguageRestored = [string]$restoredLanguageSettings.Language
     } | Format-List
 
     Write-Host '[OK] Live settings UI smoke test' -ForegroundColor Green

@@ -316,7 +316,8 @@ public sealed class SettingsForm : Form
         _languageBox.Items.AddRange([
             new Choice<UiLanguagePreference>(UiLanguagePreference.Auto, _localizer["Auto"]),
             new Choice<UiLanguagePreference>(UiLanguagePreference.Japanese, _localizer["Japanese"]),
-            new Choice<UiLanguagePreference>(UiLanguagePreference.English, _localizer["English"])
+            new Choice<UiLanguagePreference>(UiLanguagePreference.English, _localizer["English"]),
+            new Choice<UiLanguagePreference>(UiLanguagePreference.ChineseSimplified, _localizer["ChineseSimplified"])
         ]);
         _languageBox.SelectedItem = _languageBox.Items
             .OfType<Choice<UiLanguagePreference>>()

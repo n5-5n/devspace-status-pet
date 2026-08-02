@@ -38,6 +38,9 @@ migrated.Normalize();
 Check(migrated.ResolvedTheme == PetTheme.Neon, "v0.1 theme migration");
 Check(!migrated.ShowBubble, "v0.1 bubble migration");
 Check(migrated.LanguagePreference == UiLanguagePreference.English, "v0.1 language migration");
+var chineseSettings = new AppSettings { Language = "ChineseSimplified" };
+chineseSettings.Normalize();
+Check(chineseSettings.LanguagePreference == UiLanguagePreference.ChineseSimplified, "simplified Chinese language setting");
 Check(migrated.ResolvedBubbleTheme == BubbleColorTheme.Light, "legacy .NET bubble theme migration default");
 Check(migrated.ResolvedBubbleStyle == BubbleVisualStyle.Speech, "bubble design migration default");
 Check(Math.Abs(migrated.Scale - 1.15) < 0.001 && migrated.MaxBubbles == 4, "new settings defaults");
@@ -247,6 +250,8 @@ using (var settingsForm = new SettingsForm(updateUiStore, updateUiLocalizer, upd
     Check(settingsForm.Controls.Find("CheckUpdatesOnStartupInput", true).Length == 1, "settings startup update option");
     Check(settingsForm.Controls.Find("IncludePrereleaseUpdatesInput", true).Length == 1, "settings prerelease option");
     Check(settingsForm.Controls.Find("BubbleStyleInput", true).Length == 1, "settings bubble-design option");
+    var languageInput = settingsForm.Controls.Find("LanguageInput", true).OfType<ComboBox>().Single();
+    Check(languageInput.Items.Count == 4, "settings simplified Chinese option");
 }
 using (var updateUiService = new UpdateService("0.1.1"))
 using (var updateForm = new UpdateForm(
@@ -274,6 +279,45 @@ Check(localizer.State(ActivityState.Working) == "Working", "English localization
 current.Language = "Japanese";
 Check(localizer.State(ActivityState.Working) == "作業中", "Japanese localization");
 Check(localizer["ShowRecoverPet"] == "ペットを表示／復旧", "pet recovery menu localization");
+current.Language = "ChineseSimplified";
+Check(localizer.State(ActivityState.Working) == "工作中", "simplified Chinese localization");
+Check(localizer["ShowRecoverPet"] == "显示／恢复宠物", "simplified Chinese recovery menu localization");
+Check(localizer["CheckUpdates"] == "检查更新", "simplified Chinese updater localization");
+Check(localizer.Get("InstalledMessage", "C:\\Test").Contains("已安装", StringComparison.Ordinal), "simplified Chinese installer localization");
+Check(localizer.Get("ApplicationError", "错误", "crash.log").Contains("遇到错误", StringComparison.Ordinal), "simplified Chinese error localization");
+Check(Localizer.HasCompleteCatalogs, "complete localization catalogs");
+var chineseReadmePath = Path.Combine(Environment.CurrentDirectory, "README.zh-CN.md");
+var chinesePackageReadmePath = Path.Combine(Environment.CurrentDirectory, "README.dotnet.zh-CN.md");
+Check(
+    File.Exists(chineseReadmePath) && File.ReadAllText(chineseReadmePath).Contains("简体中文", StringComparison.Ordinal),
+    "GitHub simplified Chinese README");
+Check(
+    File.Exists(chinesePackageReadmePath) && File.ReadAllText(chinesePackageReadmePath).Contains("简体中文", StringComparison.Ordinal),
+    "package simplified Chinese README");
+var originalUiCulture = System.Globalization.CultureInfo.CurrentUICulture;
+try
+{
+    System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("zh-CN");
+    Check(
+        Localizer.Resolve(UiLanguagePreference.Auto) == UiLanguage.ChineseSimplified,
+        "Chinese OS language auto detection");
+}
+finally
+{
+    System.Globalization.CultureInfo.CurrentUICulture = originalUiCulture;
+}
+using (var chineseMenuPet = new PetForm(
+           new SettingsStore(new AppSettings { Language = "ChineseSimplified" }),
+           new PositionStore(null),
+           new Localizer(() => new AppSettings { Language = "ChineseSimplified" })))
+{
+    chineseMenuPet.ApplySnapshot(DevSpaceSnapshot.Initial("config.json", "serve.log", 7676));
+    var hasChineseChoice = chineseMenuPet.ContextMenuStrip?.Items
+        .OfType<ToolStripMenuItem>()
+        .SelectMany(item => item.DropDownItems.OfType<ToolStripMenuItem>())
+        .Any(item => item.Text == "简体中文") == true;
+    Check(hasChineseChoice, "pet menu simplified Chinese option");
+}
 Check(AppPaths.RuntimeLogPath.EndsWith("runtime.log", StringComparison.OrdinalIgnoreCase), "runtime diagnostics path");
 Check(!LayeredWindowRenderer.IsCloaked(IntPtr.Zero), "zero-handle cloak check");
 Check(!LayeredWindowRenderer.IsTopMost(IntPtr.Zero), "zero-handle topmost check");
