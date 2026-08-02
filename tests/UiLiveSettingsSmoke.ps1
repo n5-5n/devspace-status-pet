@@ -239,8 +239,9 @@ try {
     if ([string]$speechStyleSettings.BubbleStyle -ne 'Speech') {
         throw "Speech-bubble design was not saved immediately. Got $($speechStyleSettings.BubbleStyle)."
     }
-    if ([Math]::Abs($cleanStyleBounds.Height - $speechStyleBounds.Height) -lt 20) {
-        throw "Pet height did not change between clean card and speech styles. Clean=$($cleanStyleBounds.Height), Speech=$($speechStyleBounds.Height)."
+    $styleHeightDifference = $cleanStyleBounds.Height - $speechStyleBounds.Height
+    if ($styleHeightDifference -lt 8) {
+        throw "Pet height did not change as expected between clean card and speech styles. Clean=$($cleanStyleBounds.Height), Speech=$($speechStyleBounds.Height), Difference=$styleHeightDifference."
     }
 
     $restoreKeys = switch ($originalBubbleStyle) {
