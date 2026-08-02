@@ -274,6 +274,8 @@ using (var chineseSettingsForm = new SettingsForm(chineseUiStore, chineseUiLocal
     Application.DoEvents();
     var clientBounds = chineseSettingsForm.RectangleToScreen(chineseSettingsForm.ClientRectangle);
     clientBounds.Inflate(2, 2);
+    var viewport = chineseSettingsForm.Controls.Find("SettingsViewport", true).OfType<Panel>().Single();
+    var workingArea = Screen.FromControl(chineseSettingsForm).WorkingArea;
     var visibleControls = EnumerateControls(chineseSettingsForm)
         .Where(control =>
             control.Visible &&
@@ -293,14 +295,22 @@ using (var chineseSettingsForm = new SettingsForm(chineseUiStore, chineseUiLocal
     Check(
         visibleControls.All(control => !control.Text.Contains('\uFFFD')),
         "simplified Chinese settings text encoding");
-    Check(clippedControls.Length == 0, "simplified Chinese settings controls fit window");
-    if (clippedControls.Length > 0)
+    var contentFitsWithoutScrolling = viewport.DisplayRectangle.Height <= viewport.ClientSize.Height;
+    Check(
+        workingArea.Contains(chineseSettingsForm.Bounds),
+        "settings window fits monitor working area");
+    Check(
+        !contentFitsWithoutScrolling || clippedControls.Length == 0,
+        "simplified Chinese settings controls fit normal window");
+    Check(
+        contentFitsWithoutScrolling || viewport.VerticalScroll.Visible,
+        "constrained settings window enables vertical scrolling");
+    if (contentFitsWithoutScrolling && clippedControls.Length > 0)
     {
         Console.WriteLine($"[INFO] Chinese settings client bounds: {clientBounds}");
         Console.WriteLine($"[INFO] clipped Chinese settings controls: {string.Join(", ", clippedControls)}");
     }
 
-    var viewport = chineseSettingsForm.Controls.Find("SettingsViewport", true).OfType<Panel>().Single();
     chineseSettingsForm.ClientSize = new Size(620, 600);
     Application.DoEvents();
     Check(
