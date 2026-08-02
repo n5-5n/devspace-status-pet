@@ -196,14 +196,6 @@ dotnet run --project .\tests\DevSpaceStatusPet.Smoke\DevSpaceStatusPet.Smoke.csp
 
 タグ`v0.x.x`をpushすると、GitHub ActionsがWindows上でビルド、スモークテスト、自己インストール／アンインストール試験を行い、ZIPとSHA-256をGitHub Releasesへ公開します。ハイフン付きバージョンはPrerelease、通常バージョンはStable Releaseとして公開されます。
 
-## バージョン運用
-
-独立した更新を公開するたびにパッチ番号を1つ上げます。例：`v0.1.1 → v0.1.2 → v0.1.3`。
-
-同じ更新内容を試験している間は基準番号を変えず、`alpha.1 → alpha.2 → alpha.3`のようにPrerelease番号だけを上げます。正式公開時は同じ基準番号からalpha表記を外します。
-
-過去の公開番号は、`v0.2.0系 → v0.1.1系`、`v0.2.1 → v0.1.2`、`v0.3.0-alpha系 → v0.1.3-alpha系`へ遡及して正規化しました。対応表と詳細は[`VERSIONING.md`](VERSIONING.md)にあります。
-
 ## 旧PowerShell版
 
 PowerShell製v0.1.0はGitHub Releasesに残しています。現在の.NET版は、そのテーマ、言語、吹き出し、位置設定をそのまま読み取ります。
