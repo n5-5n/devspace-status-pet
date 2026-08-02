@@ -23,7 +23,8 @@ public enum UiLanguagePreference
 {
     Auto,
     Japanese,
-    English
+    English,
+    ChineseSimplified
 }
 
 public sealed class AppSettings

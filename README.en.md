@@ -1,10 +1,11 @@
 # DevSpace Status Pet
 
-**[日本語](README.md) | [English](README.en.md)**
+**[日本語](README.md) | [English](README.en.md) | [简体中文](README.zh-CN.md)**
 
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.1.4 (C# / .NET 8, display self-recovery, and diagnostics)**<br>
+> **Development build: v0.1.5-alpha.1 (Simplified Chinese UI and README)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -21,7 +22,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Immediate switching between Standard Speech Bubble, Neon Monitor Card, and Clean Monitor Card designs
 - Per-pixel alpha transparency so the live window matches the GitHub previews
 - Dark tray menu, pet menu, nested menus, and settings window
-- Japanese, English, and automatic OS-language selection
+- Japanese, English, Simplified Chinese, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
 - Automatically fits oversized layouts inside the current monitor
 - Windows startup registration
@@ -120,7 +121,7 @@ The maximum number of visible bubbles can be changed from 1 to 8 in Settings.
 
 Right-click the pet or tray icon and open **Settings**. Changes are applied immediately without pressing Save.
 
-- Display language: Auto, Japanese, or English
+- Display language: Auto, Japanese, English, or Simplified Chinese
 - Robot theme: Classic or Neon
 - Bubble theme: Light or Dark
 - Bubble design: Standard Speech Bubble, Monitor Card (Neon), or Monitor Card (Clean)

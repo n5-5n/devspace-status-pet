@@ -2,6 +2,20 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.5-alpha.1] - 2026-08-03
+
+### Added
+
+- Added complete Simplified Chinese localization for pet bubbles, menus, settings, notifications, and the updater.
+- Added automatic Simplified Chinese selection when the Windows UI language is Chinese.
+- Added `README.zh-CN.md` for GitHub and `README.dotnet.zh-CN.md` for release packages.
+- Added Simplified Chinese choices to both the settings window and pet context menu.
+
+### Tested
+
+- Added catalog-key parity, Chinese UI text, Chinese OS auto-detection, and language-choice regression tests.
+- Added all Japanese, English, and Simplified Chinese documentation to the release package.
+
 ## [0.1.4] - 2026-08-03
 
 ### Stable release

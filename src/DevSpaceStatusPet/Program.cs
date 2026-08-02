@@ -60,9 +60,10 @@ internal static class Program
         {
             RuntimeLogger.Write(eventArgs.Exception, "Application.ThreadException");
             CrashLogger.Write(eventArgs.Exception, "Application.ThreadException");
+            var localizer = CreateLocalizer();
             MessageBox.Show(
-                $"DevSpace Status Pet encountered an error.\n\n{eventArgs.Exception.Message}\n\n{AppPaths.CrashLogPath}",
-                "DevSpace Status Pet",
+                localizer.Get("ApplicationError", eventArgs.Exception.Message, AppPaths.CrashLogPath),
+                localizer["AppName"],
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         };
@@ -91,11 +92,18 @@ internal static class Program
         {
             RuntimeLogger.Write(exception, "Program.Main");
             CrashLogger.Write(exception, "Program.Main");
+            var localizer = CreateLocalizer();
             MessageBox.Show(
-                $"DevSpace Status Pet could not start.\n\n{exception.Message}\n\n{AppPaths.CrashLogPath}",
-                "DevSpace Status Pet",
+                localizer.Get("StartupError", exception.Message, AppPaths.CrashLogPath),
+                localizer["AppName"],
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
+    }
+
+    private static Localizer CreateLocalizer()
+    {
+        var settingsStore = new SettingsStore();
+        return new Localizer(() => settingsStore.Current);
     }
 }

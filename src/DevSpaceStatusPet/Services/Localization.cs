@@ -6,7 +6,8 @@ namespace DevSpaceStatusPet.Services;
 public enum UiLanguage
 {
     Japanese,
-    English
+    English,
+    ChineseSimplified
 }
 
 public sealed class Localizer
@@ -24,7 +25,12 @@ public sealed class Localizer
 
     public string Get(string key, params object[] args)
     {
-        var catalog = Language == UiLanguage.Japanese ? Japanese : English;
+        var catalog = Language switch
+        {
+            UiLanguage.Japanese => Japanese,
+            UiLanguage.ChineseSimplified => ChineseSimplified,
+            _ => English
+        };
         var text = catalog.TryGetValue(key, out var value)
             ? value
             : English.TryGetValue(key, out var fallback) ? fallback : key;
@@ -65,9 +71,13 @@ public sealed class Localizer
     {
         UiLanguagePreference.Japanese => UiLanguage.Japanese,
         UiLanguagePreference.English => UiLanguage.English,
-        _ => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ja", StringComparison.OrdinalIgnoreCase)
-            ? UiLanguage.Japanese
-            : UiLanguage.English
+        UiLanguagePreference.ChineseSimplified => UiLanguage.ChineseSimplified,
+        _ => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch
+        {
+            "ja" => UiLanguage.Japanese,
+            "zh" => UiLanguage.ChineseSimplified,
+            _ => UiLanguage.English
+        }
     };
 
     private static readonly IReadOnlyDictionary<string, string> Japanese = new Dictionary<string, string>
@@ -114,6 +124,7 @@ public sealed class Localizer
         ["Auto"] = "自動（OS言語）",
         ["Japanese"] = "日本語",
         ["English"] = "English",
+        ["ChineseSimplified"] = "简体中文",
         ["ResetPosition"] = "位置を右下へ戻す",
         ["ParallelMore"] = "+{0}件",
         ["OtherTasks"] = "ほかの処理",
@@ -143,6 +154,10 @@ public sealed class Localizer
         ["InstallUpdate"] = "インストール／更新",
         ["UninstallV2"] = "アンインストール",
         ["ConfirmUninstall"] = "DevSpace Status Petをアンインストールしますか？\n設定は保持されます。",
+        ["InstalledMessage"] = "DevSpace Status Petをインストールしました。\n\n{0}",
+        ["UninstallingMessage"] = "DevSpace Status Petをアンインストールします。",
+        ["ApplicationError"] = "DevSpace Status Petでエラーが発生しました。\n\n{0}\n\n{1}",
+        ["StartupError"] = "DevSpace Status Petを起動できませんでした。\n\n{0}\n\n{1}",
         ["Version"] = "バージョン: {0}",
         ["Saved"] = "設定を保存しました。",
         ["NoLog"] = "ログファイルが見つかりません。",
@@ -175,6 +190,126 @@ public sealed class Localizer
         ["IncludePrereleaseUpdates"] = "開発版（Prerelease）も確認",
         ["NotChecked"] = "未確認",
         ["None"] = "なし"
+    };
+
+    internal static bool HasCompleteCatalogs =>
+        CatalogMatches(English, Japanese) && CatalogMatches(English, ChineseSimplified);
+
+    private static bool CatalogMatches(
+        IReadOnlyDictionary<string, string> expected,
+        IReadOnlyDictionary<string, string> candidate) =>
+        expected.Count == candidate.Count && expected.Keys.All(candidate.ContainsKey);
+
+    private static readonly IReadOnlyDictionary<string, string> ChineseSimplified = new Dictionary<string, string>
+    {
+        ["AppName"] = "DevSpace Status Pet",
+        ["Working"] = "工作中",
+        ["Waiting"] = "等待下一步",
+        ["Failed"] = "处理失败",
+        ["Stalled"] = "可能已停滞",
+        ["Stopped"] = "已停止",
+        ["Idle"] = "空闲",
+        ["Unknown"] = "未知",
+        ["ReadFile"] = "读取文件",
+        ["ReadTarget"] = "读取：{0}",
+        ["EditFile"] = "编辑文件",
+        ["EditTarget"] = "编辑：{0}",
+        ["WriteFile"] = "写入文件",
+        ["WriteTarget"] = "写入：{0}",
+        ["RunCommand"] = "运行命令",
+        ["CommandTarget"] = "命令：{0}",
+        ["OpenWorkspace"] = "打开工作区",
+        ["LocalProcess"] = "本地进程",
+        ["Project"] = "项目：{0}",
+        ["Operation"] = "操作：{0}",
+        ["Elapsed"] = "已用时间：{0}",
+        ["Refresh"] = "立即刷新",
+        ["ShowRecoverPet"] = "显示／恢复宠物",
+        ["Settings"] = "设置",
+        ["OpenLog"] = "打开日志",
+        ["OpenFolder"] = "打开 .devspace 文件夹",
+        ["Exit"] = "退出",
+        ["ShowBubble"] = "始终显示气泡",
+        ["Theme"] = "机器人主题",
+        ["Classic"] = "经典（状态颜色）",
+        ["Neon"] = "霓虹（紫色和黄色）",
+        ["BubbleTheme"] = "气泡主题",
+        ["BubbleLight"] = "浅色",
+        ["BubbleDark"] = "深色",
+        ["BubbleStyle"] = "气泡样式",
+        ["BubbleSpeech"] = "标准对话气泡",
+        ["BubbleMonitorCardNeon"] = "监视卡片（霓虹）",
+        ["BubbleMonitorCardClean"] = "监视卡片（简洁）",
+        ["Language"] = "语言 / Language",
+        ["Auto"] = "自动（系统语言）",
+        ["Japanese"] = "日本語",
+        ["English"] = "English",
+        ["ChineseSimplified"] = "简体中文",
+        ["ResetPosition"] = "将位置重置到右下角",
+        ["ParallelMore"] = "+{0} 项",
+        ["OtherTasks"] = "其他任务",
+        ["WorkDoneTitle"] = "DevSpace 工作阶段已完成",
+        ["WorkFailedTitle"] = "DevSpace 工作失败",
+        ["WorkTime"] = "工作时间：{0}",
+        ["StopTitle"] = "DevSpace 已停止",
+        ["StopText"] = "DevSpace 服务器已停止。",
+        ["StallTitle"] = "DevSpace 可能已停滞",
+        ["Status"] = "状态：{0}",
+        ["Port"] = "端口：{0}",
+        ["Config"] = "配置文件：{0}",
+        ["Log"] = "日志：{0}",
+        ["General"] = "常规",
+        ["Appearance"] = "外观",
+        ["Notification"] = "通知",
+        ["Scale"] = "大小",
+        ["Opacity"] = "透明度",
+        ["QuietSeconds"] = "完成通知前的静默秒数",
+        ["StallMinutes"] = "停滞阈值（分钟）",
+        ["MaxBubbles"] = "最大气泡数",
+        ["NotificationsEnabled"] = "启用 Windows 通知",
+        ["StartWithWindows"] = "随 Windows 启动",
+        ["Save"] = "保存",
+        ["Close"] = "关闭",
+        ["OpenLogFolder"] = "打开日志文件夹",
+        ["InstallUpdate"] = "安装／更新",
+        ["UninstallV2"] = "卸载",
+        ["ConfirmUninstall"] = "要卸载 DevSpace Status Pet 吗？\n设置将保留。",
+        ["InstalledMessage"] = "DevSpace Status Pet 已安装。\n\n{0}",
+        ["UninstallingMessage"] = "正在卸载 DevSpace Status Pet。",
+        ["ApplicationError"] = "DevSpace Status Pet 遇到错误。\n\n{0}\n\n{1}",
+        ["StartupError"] = "DevSpace Status Pet 无法启动。\n\n{0}\n\n{1}",
+        ["Version"] = "版本：{0}",
+        ["Saved"] = "设置已保存。",
+        ["NoLog"] = "找不到日志文件。",
+        ["CheckUpdates"] = "检查更新",
+        ["CheckingUpdates"] = "正在检查更新…",
+        ["UpdateAvailableMenu"] = "有可用更新：v{0}",
+        ["UpdateAvailableTitle"] = "有新版本可用",
+        ["UpdateAvailableText"] = "DevSpace Status Pet v{0} 可用。",
+        ["UpdateVersionLine"] = "当前：v{0}    最新：v{1}",
+        ["UpdatePublished"] = "发布时间：{0}",
+        ["NoReleaseNotes"] = "没有可用的发行说明。",
+        ["UpdateReady"] = "更新前请查看发行说明。",
+        ["InstallUpdateNow"] = "立即更新",
+        ["OpenReleasePage"] = "在 GitHub 上查看",
+        ["Cancel"] = "取消",
+        ["DownloadingChecksum"] = "正在下载校验和…",
+        ["DownloadingUpdate"] = "正在下载更新… {0}",
+        ["VerifyingUpdate"] = "正在验证 SHA-256…",
+        ["ExtractingUpdate"] = "正在解压更新…",
+        ["StartingInstaller"] = "正在启动更新版本…",
+        ["UpdateCancelled"] = "更新已取消。",
+        ["UpdateFailed"] = "更新失败。",
+        ["UpdateFailedDetail"] = "更新失败。当前版本未被更改。\n\n{0}",
+        ["UpToDate"] = "已是最新版本。",
+        ["UpdateCheckFailed"] = "检查更新失败。",
+        ["UpdateCheckFailedDetail"] = "无法检查更新。\n\n{0}",
+        ["LatestVersion"] = "最新版本",
+        ["UpdateStatus"] = "更新状态",
+        ["CheckUpdatesOnStartup"] = "启动时检查更新",
+        ["IncludePrereleaseUpdates"] = "同时检查开发版（Prerelease）",
+        ["NotChecked"] = "未检查",
+        ["None"] = "无"
     };
 
     private static readonly IReadOnlyDictionary<string, string> English = new Dictionary<string, string>
@@ -221,6 +356,7 @@ public sealed class Localizer
         ["Auto"] = "Auto (OS language)",
         ["Japanese"] = "日本語",
         ["English"] = "English",
+        ["ChineseSimplified"] = "简体中文",
         ["ResetPosition"] = "Reset position to bottom-right",
         ["ParallelMore"] = "+{0} more",
         ["OtherTasks"] = "Other tasks",
@@ -250,6 +386,10 @@ public sealed class Localizer
         ["InstallUpdate"] = "Install / update",
         ["UninstallV2"] = "Uninstall",
         ["ConfirmUninstall"] = "Uninstall DevSpace Status Pet?\nSettings will be kept.",
+        ["InstalledMessage"] = "DevSpace Status Pet has been installed.\n\n{0}",
+        ["UninstallingMessage"] = "DevSpace Status Pet will be uninstalled.",
+        ["ApplicationError"] = "DevSpace Status Pet encountered an error.\n\n{0}\n\n{1}",
+        ["StartupError"] = "DevSpace Status Pet could not start.\n\n{0}\n\n{1}",
         ["Version"] = "Version: {0}",
         ["Saved"] = "Settings saved.",
         ["NoLog"] = "The log file was not found.",

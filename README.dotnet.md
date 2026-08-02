@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.4
+# DevSpace Status Pet v0.1.5-alpha.1
 
-**[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
+**[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.4は、表示自己復旧、通常診断ログ、ネイティブTopMost復旧、低解像度モニターへの自動フィットを追加した安定版です。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.5-alpha.1は、簡体字UI、中国語OSの自動判定、中国語READMEを追加したPrereleaseです。
 
 ## 必要環境
 
@@ -41,7 +41,7 @@ PowerShell版と.NET版の既存設定は自動的に引き継がれます。
 - クラシック／ネオンのロボットテーマ
 - ライト／ダークの吹き出しテーマ
 - ダーク化された右クリックメニューと設定画面
-- 日本語／English／OS言語自動選択
+- 日本語／English／简体中文／OS言語自動選択
 - サイズ、透明度、通知時間、吹き出し数の即時変更
 - 大きな倍率でも現在のモニター内へ自動フィット
 - GitHub Releasesの更新確認とSHA-256検証付き手動更新

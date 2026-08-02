@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 
 namespace DevSpaceStatusPet.Services;
 
@@ -86,11 +85,10 @@ public static class SelfInstaller
 
         if (!silent)
         {
+            var localizer = CreateLocalizer();
             MessageBox.Show(
-                IsJapanese()
-                    ? $"DevSpace Status Petをインストールしました。\n\n{InstallDirectory}"
-                    : $"DevSpace Status Pet has been installed.\n\n{InstallDirectory}",
-                "DevSpace Status Pet",
+                localizer.Get("InstalledMessage", InstallDirectory),
+                localizer["AppName"],
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -111,11 +109,10 @@ public static class SelfInstaller
 
         if (!silent)
         {
+            var localizer = CreateLocalizer();
             MessageBox.Show(
-                IsJapanese()
-                    ? "DevSpace Status Petをアンインストールします。"
-                    : "DevSpace Status Pet will be uninstalled.",
-                "DevSpace Status Pet",
+                localizer["UninstallingMessage"],
+                localizer["AppName"],
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -246,6 +243,9 @@ public static class SelfInstaller
         return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsJapanese() =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ja", StringComparison.OrdinalIgnoreCase);
+    private static Localizer CreateLocalizer()
+    {
+        var settingsStore = new SettingsStore();
+        return new Localizer(() => settingsStore.Current);
+    }
 }

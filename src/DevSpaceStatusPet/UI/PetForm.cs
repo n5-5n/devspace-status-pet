@@ -37,6 +37,7 @@ public sealed class PetForm : Form
     private readonly ToolStripMenuItem _autoLanguageItem;
     private readonly ToolStripMenuItem _japaneseLanguageItem;
     private readonly ToolStripMenuItem _englishLanguageItem;
+    private readonly ToolStripMenuItem _chineseSimplifiedLanguageItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _resetItem;
     private readonly ToolStripMenuItem _exitItem;
@@ -93,7 +94,13 @@ public sealed class PetForm : Form
         _autoLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
         _japaneseLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
         _englishLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
-        languageMenu.DropDownItems.AddRange([_autoLanguageItem, _japaneseLanguageItem, _englishLanguageItem]);
+        _chineseSimplifiedLanguageItem = new ToolStripMenuItem { CheckOnClick = true };
+        languageMenu.DropDownItems.AddRange([
+            _autoLanguageItem,
+            _japaneseLanguageItem,
+            _englishLanguageItem,
+            _chineseSimplifiedLanguageItem
+        ]);
 
         _settingsItem = new ToolStripMenuItem();
         _resetItem = new ToolStripMenuItem();
@@ -123,6 +130,7 @@ public sealed class PetForm : Form
         _autoLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Auto);
         _japaneseLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.Japanese);
         _englishLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.English);
+        _chineseSimplifiedLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.ChineseSimplified);
         _settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         _resetItem.Click += (_, _) => MoveToBottomRight();
         _exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
@@ -876,9 +884,11 @@ public sealed class PetForm : Form
         _autoLanguageItem.Text = _localizer["Auto"];
         _japaneseLanguageItem.Text = _localizer["Japanese"];
         _englishLanguageItem.Text = _localizer["English"];
+        _chineseSimplifiedLanguageItem.Text = _localizer["ChineseSimplified"];
         _autoLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.Auto;
         _japaneseLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.Japanese;
         _englishLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.English;
+        _chineseSimplifiedLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.ChineseSimplified;
         _settingsItem.Text = _localizer["Settings"];
         _resetItem.Text = _localizer["ResetPosition"];
         _exitItem.Text = _localizer["Exit"];
