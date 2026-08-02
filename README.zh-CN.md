@@ -4,8 +4,7 @@
 
 一个面向 Windows 的 DevSpace 状态监视器，通过系统托盘图标和动画桌面宠物显示本地工作状态。
 
-> **稳定版：v0.1.4（C# / .NET 8、显示自动恢复、运行诊断）**<br>
-> **开发版：v0.1.5-alpha.2（简体中文界面和设置窗口布局修复）**<br>
+> **稳定版：v0.1.5（简体中文界面、中文文档和设置窗口布局修复）**<br>
 > 旧版 PowerShell v0.1.0 仍保留在 GitHub Releases 中，可用于回退。
 
 ## 主要功能
@@ -59,7 +58,7 @@
 
 ## 安装
 
-1. 从 [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest) 下载 `DevSpace-Status-Pet-v0.1.4-win-x64.zip`
+1. 从 [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest) 下载 `DevSpace-Status-Pet-v0.1.5-win-x64.zip`
 2. 解压 ZIP
 3. 运行 `DevSpaceStatusPet.exe`
 4. 右键菜单中选择**安装／更新**

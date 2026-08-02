@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.5] - 2026-08-03
+
+### Stable release
+
+- Promoted the tested Simplified Chinese localization and Chinese documentation from the v0.1.5 alpha series.
+- Includes automatic Chinese OS-language selection and localized pet, settings, notification, updater, installer, and error interfaces.
+- Includes the settings-window layout fix with full-height normal display and low-resolution vertical scrolling.
+- Passed multilingual rendering, live language switching, low-resolution, recovery, installer, package, security, privacy, and public-artifact validation.
+- Preserves existing settings, position, startup registration, and the installed application path.
+
 ## [0.1.5-alpha.2] - 2026-08-03
 
 ### Fixed
