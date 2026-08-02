@@ -4,8 +4,7 @@
 
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
-> **Stable release: v0.1.3 (C# / .NET 8 single executable)**<br>
-> **Release candidate: v0.1.4-alpha.2 (display recovery, diagnostics, and stronger TopMost recovery)**<br>
+> **Stable release: v0.1.4 (C# / .NET 8, display self-recovery, and diagnostics)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -59,7 +58,7 @@ No separate .NET Runtime installation or PowerShell execution-policy change is r
 
 ## Install
 
-1. Download `DevSpace-Status-Pet-v0.1.3-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
+1. Download `DevSpace-Status-Pet-v0.1.4-win-x64.zip` from [GitHub Releases](https://github.com/n5-5n/devspace-status-pet/releases/latest)
 2. Extract the ZIP
 3. Run `DevSpaceStatusPet.exe`
 4. Select **Install / update** from the context menu
