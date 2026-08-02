@@ -19,6 +19,7 @@ public sealed class PetForm : Form
     private const int MonitorConnectorHeight = 18;
     private const int RobotLogicalHeight = 224;
     private const float RobotDesignScale = 1.48f;
+    private const int ScreenFitPadding = 16;
 
     private readonly SettingsStore _settingsStore;
     private readonly PositionStore _positionStore;
@@ -48,6 +49,7 @@ public sealed class PetForm : Form
     private int _renderFailureCount;
     private int _watchdogFrameCount;
     private bool _recoveringVisibility;
+    private double _effectiveScale = 1.0;
 
     public PetForm(SettingsStore settingsStore, PositionStore positionStore, Localizer localizer)
     {
@@ -147,6 +149,9 @@ public sealed class PetForm : Form
         {
             ApplySettings();
             RestorePosition();
+            ApplySettings();
+            TopMost = false;
+            TopMost = true;
             RenderLayeredWindow();
             _animationTimer.Start();
         };
@@ -187,7 +192,9 @@ public sealed class PetForm : Form
     private void ResizeForContent(AppSettings settings)
     {
         var count = VisibleActivities(settings).Count;
-        var target = CalculateClientSize(settings, count);
+        var workingArea = Screen.FromRectangle(Bounds).WorkingArea;
+        _effectiveScale = CalculateEffectiveScale(settings, count, workingArea.Size);
+        var target = CalculateClientSize(settings, count, _effectiveScale);
         if (ClientSize == target)
         {
             return;
@@ -199,12 +206,41 @@ public sealed class PetForm : Form
         ClampToScreen();
     }
 
-    internal static Size CalculateClientSize(AppSettings settings, int activityCount)
+    internal static Size CalculateClientSize(AppSettings settings, int activityCount) =>
+        CalculateClientSize(settings, activityCount, settings.Scale);
+
+    internal static Size CalculateFittedClientSize(
+        AppSettings settings,
+        int activityCount,
+        Size workingAreaSize) =>
+        CalculateClientSize(
+            settings,
+            activityCount,
+            CalculateEffectiveScale(settings, activityCount, workingAreaSize));
+
+    internal static double CalculateEffectiveScale(
+        AppSettings settings,
+        int activityCount,
+        Size workingAreaSize)
+    {
+        var logicalHeight = GetBubbleAreaHeight(settings, activityCount) + RobotLogicalHeight;
+        var availableWidth = Math.Max(1, workingAreaSize.Width - ScreenFitPadding);
+        var availableHeight = Math.Max(1, workingAreaSize.Height - ScreenFitPadding);
+        var fittedScale = Math.Min(
+            availableWidth / (double)LogicalWidth,
+            availableHeight / (double)logicalHeight);
+        return Math.Max(0.1, Math.Min(settings.Scale, fittedScale));
+    }
+
+    private static Size CalculateClientSize(
+        AppSettings settings,
+        int activityCount,
+        double scale)
     {
         var logicalHeight = GetBubbleAreaHeight(settings, activityCount) + RobotLogicalHeight;
         return new Size(
-            (int)Math.Ceiling(LogicalWidth * settings.Scale),
-            (int)Math.Ceiling(logicalHeight * settings.Scale));
+            (int)Math.Ceiling(LogicalWidth * scale),
+            (int)Math.Ceiling(logicalHeight * scale));
     }
 
     internal static int GetBubbleAreaHeight(AppSettings settings, int count)
@@ -355,7 +391,13 @@ public sealed class PetForm : Form
 
         var intersectsWorkingArea = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds));
         var cloaked = IsHandleCreated && LayeredWindowRenderer.IsCloaked(Handle);
-        if (!Visible || WindowState != FormWindowState.Normal || !TopMost || !intersectsWorkingArea || cloaked)
+        var nativeTopMost = IsHandleCreated && LayeredWindowRenderer.IsTopMost(Handle);
+        if (!Visible ||
+            WindowState != FormWindowState.Normal ||
+            !TopMost ||
+            !nativeTopMost ||
+            !intersectsWorkingArea ||
+            cloaked)
         {
             RecoverVisibility(
                 cloaked ? $"{reason}:cloaked" : reason,
@@ -397,6 +439,7 @@ public sealed class PetForm : Form
                 Show();
             }
 
+            ResizeForContent(_settingsStore.Current);
             ClampToScreen();
             TopMost = false;
             TopMost = true;
@@ -405,7 +448,8 @@ public sealed class PetForm : Form
             _renderFailureCount = 0;
             RuntimeLogger.Write(
                 "pet-window-recovered",
-                $"reason={reason}; before={before}; after={Bounds}; visible={Visible}; topmost={TopMost}");
+                $"reason={reason}; before={before}; after={Bounds}; visible={Visible}; " +
+                $"topmost={TopMost}; nativeTopmost={LayeredWindowRenderer.IsTopMost(Handle)}");
         }
         catch (Exception exception)
         {
@@ -426,7 +470,7 @@ public sealed class PetForm : Form
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.CompositingQuality = CompositingQuality.HighQuality;
         graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-        graphics.ScaleTransform((float)settings.Scale, (float)settings.Scale);
+        graphics.ScaleTransform((float)_effectiveScale, (float)_effectiveScale);
 
         var bubbleAreaHeight = GetBubbleAreaHeight(settings, activities.Count);
         if (settings.ShowBubble)
@@ -889,6 +933,8 @@ public sealed class PetForm : Form
         _dragging = false;
         if (_dragMoved)
         {
+            ResizeForContent(_settingsStore.Current);
+            ClampToScreen();
             _positionStore.Save(Location);
         }
         else

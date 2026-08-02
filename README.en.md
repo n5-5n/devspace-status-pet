@@ -5,7 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.1.3 (C# / .NET 8 single executable)**<br>
-> **Development build: v0.1.4-alpha.1 (display self-recovery and diagnostics)**<br>
+> **Release candidate: v0.1.4-alpha.2 (display recovery, diagnostics, and stronger TopMost recovery)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features
@@ -24,6 +24,7 @@ A Windows monitor that shows DevSpace activity through a system-tray icon and an
 - Dark tray menu, pet menu, nested menus, and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate settings preview for size, opacity, timing, and bubble count
+- Automatically fits oversized layouts inside the current monitor
 - Windows startup registration
 - Recovers the pet after monitor resume, display changes, or off-screen movement
 - **Show / recover pet** command in the tray menu

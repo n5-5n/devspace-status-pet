@@ -8,7 +8,9 @@ internal static class LayeredWindowRenderer
 {
     internal const int WsExLayered = 0x00080000;
     internal const int WsExToolWindow = 0x00000080;
+    internal const int WsExTopMost = 0x00000008;
 
+    private const int GwlExStyle = -20;
     private const int UlwAlpha = 0x00000002;
     private const byte AcSrcOver = 0x00;
     private const byte AcSrcAlpha = 0x01;
@@ -104,6 +106,17 @@ internal static class LayeredWindowRenderer
         return result == 0 && cloaked != 0;
     }
 
+    public static bool IsTopMost(IntPtr windowHandle)
+    {
+        if (!OperatingSystem.IsWindows() || windowHandle == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var extendedStyle = GetWindowLongPtr(windowHandle, GwlExStyle).ToInt64();
+        return (extendedStyle & WsExTopMost) != 0;
+    }
+
     public static Bitmap CreateLayerBitmap(Size size)
     {
         return new Bitmap(
@@ -171,6 +184,9 @@ internal static class LayeredWindowRenderer
         int attribute,
         out int attributeValue,
         int attributeSize);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr GetWindowLongPtr(IntPtr windowHandle, int index);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool UpdateLayeredWindow(

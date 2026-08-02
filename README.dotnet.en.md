@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.4-alpha.1
+# DevSpace Status Pet v0.1.4-alpha.2
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.4-alpha.1 is a prerelease that adds display self-recovery after monitor resume, display changes, or off-screen movement, plus rotating runtime diagnostics.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.4-alpha.2 is a release candidate that adds native TopMost-state detection and recovery, plus broad fault-injection testing, on top of the display self-recovery and rotating runtime diagnostics from alpha.1.
 
 ## Requirements
 
@@ -43,6 +43,7 @@ Existing PowerShell and .NET settings are reused automatically.
 - Dark context menus and settings window
 - Japanese, English, and automatic OS-language selection
 - Immediate size, opacity, timing, and bubble-count changes
+- Automatically fits oversized layouts inside the current monitor
 - GitHub Release discovery and manual updates with SHA-256 verification
 - Stable or optional prerelease update channels
 - Display self-recovery after monitor resume, display changes, or off-screen movement

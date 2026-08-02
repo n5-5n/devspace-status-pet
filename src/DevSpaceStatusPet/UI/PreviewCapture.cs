@@ -195,21 +195,21 @@ internal static class PreviewCapture
     private static AppSettings CreatePreviewSettings(
         PetTheme theme,
         BubbleVisualStyle bubbleStyle = BubbleVisualStyle.Speech) => new()
-    {
-        Theme = theme.ToString(),
-        BubbleTheme = BubbleColorTheme.Dark.ToString(),
-        BubbleStyle = bubbleStyle.ToString(),
-        Language = UiLanguagePreference.Japanese.ToString(),
-        ShowBubble = true,
-        Scale = 1.25,
-        Opacity = 1.0,
-        CompletionQuietSeconds = 45,
-        StallMinutes = 30,
-        MaxBubbles = 4,
-        NotificationsEnabled = true,
-        CheckUpdatesOnStartup = true,
-        IncludePrereleaseUpdates = false
-    };
+        {
+            Theme = theme.ToString(),
+            BubbleTheme = BubbleColorTheme.Dark.ToString(),
+            BubbleStyle = bubbleStyle.ToString(),
+            Language = UiLanguagePreference.Japanese.ToString(),
+            ShowBubble = true,
+            Scale = 1.25,
+            Opacity = 1.0,
+            CompletionQuietSeconds = 45,
+            StallMinutes = 30,
+            MaxBubbles = 4,
+            NotificationsEnabled = true,
+            CheckUpdatesOnStartup = true,
+            IncludePrereleaseUpdates = false
+        };
 
     internal static DevSpaceSnapshot CreateSampleSnapshot()
     {
