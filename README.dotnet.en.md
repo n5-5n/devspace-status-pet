@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.4-alpha.2
+# DevSpace Status Pet v0.1.4
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.4-alpha.2 is a release candidate that adds native TopMost-state detection and recovery, plus broad fault-injection testing, on top of the display self-recovery and rotating runtime diagnostics from alpha.1.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.4 is the stable release with display self-recovery, rotating runtime diagnostics, native TopMost recovery, and automatic fitting on low-resolution monitors.
 
 ## Requirements
 

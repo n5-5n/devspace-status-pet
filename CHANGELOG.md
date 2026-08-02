@@ -2,6 +2,16 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.4] - 2026-08-03
+
+### Stable release
+
+- Promoted the tested display self-recovery and rotating runtime diagnostics from the v0.1.4 alpha series.
+- Includes native TopMost-state recovery, monitor-resume handling, render retries, and manual tray recovery.
+- Automatically fits oversized layouts to low-resolution monitor working areas without changing the saved scale preference.
+- Passed PR, main, tag, release-package, downloaded-package, live fault-injection, resource, privacy, and security validation.
+- Preserves existing settings, startup registration, and the installed application path.
+
 ## [0.1.4-alpha.2] - 2026-08-03
 
 ### Fixed
