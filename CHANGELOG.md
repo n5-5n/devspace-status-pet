@@ -2,6 +2,28 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.6-alpha.3] - 2026-08-05
+
+### Fixed
+
+- Eliminated hundreds of access-denied and process-exit exceptions generated during every process-monitor refresh.
+- Replaced managed per-process module inspection with exception-free Toolhelp32 enumeration and limited native detail queries for DevSpace descendants only.
+- Reduced process-path buffer allocation and protected descendant traversal against duplicate process IDs.
+- Prevented the recurring long-run memory growth observed in v0.1.6-alpha.2.
+
+### Performance
+
+- Reduced first-chance exceptions from about 410 per second to zero.
+- Reduced runtime allocation rate from about 1.18 MB/s to about 0.20 MB/s.
+- Improved 500 process-tree scans from about 59 seconds to about 6.3 seconds.
+- Kept Private Bytes near 65 MB during a four-minute normal-environment run.
+
+### Tested
+
+- Added exception-storm regression checks using a real child process.
+- Added process, log, and render stress diagnostic modes to the smoke-test executable.
+- Re-ran multilingual rendering, reusable-DIB, screen-edge hiding, recovery, installer, and memory-stability tests.
+
 ## [0.1.6-alpha.2] - 2026-08-05
 
 ### Fixed

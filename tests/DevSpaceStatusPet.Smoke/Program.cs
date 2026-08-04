@@ -25,6 +25,260 @@ void Check(bool condition, string name)
     }
 }
 
+if (args.Length > 0 && args[0].Equals("--process-stress", StringComparison.OrdinalIgnoreCase))
+{
+    var iterationCount = args.Length > 1 && int.TryParse(args[1], out var parsedIterations)
+        ? Math.Max(10, parsedIterations)
+        : 500;
+    const double bytesPerMegabyte = 1024d * 1024d;
+    var stressInspector = new NativeProcessInspector();
+    var serverPid = stressInspector.FindListeningProcessId(7676);
+    if (!serverPid.HasValue)
+    {
+        Console.WriteLine("[PROCESS-STRESS] DevSpace server was not found on port 7676.");
+        return 2;
+    }
+
+    var firstChanceCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+    EventHandler<System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs> firstChanceHandler = (_, eventArgs) =>
+    {
+        var exception = eventArgs.Exception;
+        var key = $"{exception.GetType().FullName}: {exception.Message}";
+        firstChanceCounts[key] = firstChanceCounts.GetValueOrDefault(key) + 1;
+    };
+    AppDomain.CurrentDomain.FirstChanceException += firstChanceHandler;
+
+    var process = System.Diagnostics.Process.GetCurrentProcess();
+    process.Refresh();
+    var privateStart = process.PrivateMemorySize64 / bytesPerMegabyte;
+    var workingSetStart = process.WorkingSet64 / bytesPerMegabyte;
+    var handleStart = process.HandleCount;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    var groupCount = 0;
+    var processCount = 0;
+
+    for (var iteration = 1; iteration <= iterationCount; iteration++)
+    {
+        var groups = stressInspector.GetDescendantGroups(serverPid.Value);
+        groupCount = groups.Count;
+        processCount = groups.Sum(group => group.Processes.Count);
+        if (iteration % 50 == 0)
+        {
+            process.Refresh();
+            Console.WriteLine(
+                $"[PROCESS-STRESS] iterations={iteration}; privateMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+                $"workingSetMB={process.WorkingSet64 / bytesPerMegabyte:N1}; handles={process.HandleCount}");
+        }
+    }
+
+    stopwatch.Stop();
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+    GC.Collect();
+    process.Refresh();
+    AppDomain.CurrentDomain.FirstChanceException -= firstChanceHandler;
+    Console.WriteLine(
+        $"[PROCESS-STRESS] iterations={iterationCount}; elapsed={stopwatch.Elapsed}; groups={groupCount}; descendants={processCount}; " +
+        $"privateStartMB={privateStart:N1}; privateEndMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+        $"privateGrowthMB={(process.PrivateMemorySize64 / bytesPerMegabyte) - privateStart:N1}; " +
+        $"workingSetStartMB={workingSetStart:N1}; workingSetEndMB={process.WorkingSet64 / bytesPerMegabyte:N1}; " +
+        $"handleStart={handleStart}; handleEnd={process.HandleCount}; exceptions={firstChanceCounts.Values.Sum()}");
+    foreach (var pair in firstChanceCounts.OrderByDescending(item => item.Value).Take(12))
+    {
+        Console.WriteLine($"[PROCESS-STRESS-EXCEPTION] count={pair.Value}; {pair.Key}");
+    }
+    return 0;
+}
+
+if (args.Length > 0 && args[0].Equals("--log-stress", StringComparison.OrdinalIgnoreCase))
+{
+    var iterationCount = args.Length > 1 && int.TryParse(args[1], out var parsedIterations)
+        ? Math.Max(10, parsedIterations)
+        : 120;
+    const double bytesPerMegabyte = 1024d * 1024d;
+    var root = Path.Combine(Path.GetTempPath(), $"dssp-log-stress-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(root);
+    var logPath = Path.Combine(root, "serve.log");
+    var timestamp = DateTimeOffset.UtcNow;
+    var openLine = JsonSerializer.Serialize(new
+    {
+        @event = "tool_call",
+        tool = "open_workspace",
+        workspaceId = "ws_stress",
+        path = root,
+        ts = timestamp,
+        durationMs = 1,
+        success = true
+    });
+    var toolLine = JsonSerializer.Serialize(new
+    {
+        @event = "tool_call",
+        tool = "bash",
+        workspaceId = "ws_stress",
+        workingDirectory = root,
+        ts = timestamp,
+        durationMs = 1,
+        success = true
+    });
+
+    try
+    {
+        using (var writer = new StreamWriter(logPath, false, new UTF8Encoding(false)))
+        {
+            writer.WriteLine(openLine);
+            while (writer.BaseStream.Position < (4L * 1024 * 1024) + 16384)
+            {
+                writer.WriteLine(toolLine);
+            }
+        }
+
+        var reader = new DevSpaceLogReader();
+        _ = reader.Read(logPath, [root]);
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        process.Refresh();
+        var privateStart = process.PrivateMemorySize64 / bytesPerMegabyte;
+        var workingSetStart = process.WorkingSet64 / bytesPerMegabyte;
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        for (var iteration = 1; iteration <= iterationCount; iteration++)
+        {
+            File.AppendAllText(
+                logPath,
+                toolLine + Environment.NewLine,
+                new UTF8Encoding(false));
+            File.SetLastWriteTimeUtc(logPath, DateTime.UtcNow.AddTicks(iteration));
+            _ = reader.Read(logPath, [root]);
+            if (iteration % 20 == 0)
+            {
+                process.Refresh();
+                Console.WriteLine(
+                    $"[LOG-STRESS] iterations={iteration}; privateMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+                    $"workingSetMB={process.WorkingSet64 / bytesPerMegabyte:N1}");
+            }
+        }
+
+        stopwatch.Stop();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        process.Refresh();
+        Console.WriteLine(
+            $"[LOG-STRESS] iterations={iterationCount}; elapsed={stopwatch.Elapsed}; " +
+            $"privateStartMB={privateStart:N1}; privateEndMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+            $"privateGrowthMB={(process.PrivateMemorySize64 / bytesPerMegabyte) - privateStart:N1}; " +
+            $"workingSetStartMB={workingSetStart:N1}; workingSetEndMB={process.WorkingSet64 / bytesPerMegabyte:N1}");
+        return 0;
+    }
+    finally
+    {
+        try
+        {
+            Directory.Delete(root, true);
+        }
+        catch
+        {
+            // Stress cleanup must not hide the diagnostic result.
+        }
+    }
+}
+
+if (args.Length > 0 && args[0].Equals("--render-stress", StringComparison.OrdinalIgnoreCase))
+{
+    var frameCount = args.Length > 1 && int.TryParse(args[1], out var parsedFrames)
+        ? Math.Max(100, parsedFrames)
+        : 10000;
+    var settings = new AppSettings
+    {
+        Theme = nameof(PetTheme.Classic),
+        BubbleTheme = nameof(BubbleColorTheme.Dark),
+        BubbleStyle = nameof(BubbleVisualStyle.MonitorCardClean),
+        ShowBubble = true,
+        Language = nameof(UiLanguagePreference.Japanese),
+        Scale = 1.6,
+        MaxBubbles = 4,
+        CheckUpdatesOnStartup = false,
+        NotificationsEnabled = false
+    };
+    settings.Normalize();
+    var settingsStore = new SettingsStore(settings);
+    using var pet = new PetForm(
+        settingsStore,
+        new PositionStore(null),
+        new Localizer(() => settingsStore.Current));
+    pet.Show();
+    Application.DoEvents();
+
+    var states = new[]
+    {
+        ActivityState.Working,
+        ActivityState.Waiting,
+        ActivityState.Stalled,
+        ActivityState.Idle
+    };
+    var process = System.Diagnostics.Process.GetCurrentProcess();
+    process.Refresh();
+    const double bytesPerMegabyte = 1024d * 1024d;
+    var privateStart = process.PrivateMemorySize64 / bytesPerMegabyte;
+    var workingSetStart = process.WorkingSet64 / bytesPerMegabyte;
+    var surfaceStart = pet.RenderSurfaceGeneration;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    for (var frame = 0; frame < frameCount; frame++)
+    {
+        if (frame % 12 == 0)
+        {
+            var activityCount = 1 + ((frame / 12) % 4);
+            var state = states[(frame / 48) % states.Length];
+            var now = DateTimeOffset.Now;
+            var activities = Enumerable.Range(0, activityCount)
+                .Select(index => new DevSpaceActivity(
+                    $"stress-{index}",
+                    $"Render Stress {index + 1}",
+                    state,
+                    OperationKind.Command,
+                    "Rendering status",
+                    now - TimeSpan.FromMinutes(index + 1),
+                    TimeSpan.FromSeconds(frame + index),
+                    WorkspaceId: $"stress-{index}"))
+                .ToArray();
+            pet.ApplySnapshot(new DevSpaceSnapshot(
+                state,
+                activities,
+                null,
+                7676,
+                "config.json",
+                "serve.log",
+                now));
+        }
+
+        pet.RenderFrameForTesting();
+        if (frame % 250 == 0)
+        {
+            Application.DoEvents();
+        }
+        if (frame > 0 && frame % 2000 == 0)
+        {
+            process.Refresh();
+            Console.WriteLine(
+                $"[STRESS] frames={frame}; privateMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+                $"workingSetMB={process.WorkingSet64 / bytesPerMegabyte:N1}; surfaces={pet.RenderSurfaceGeneration}");
+        }
+    }
+
+    stopwatch.Stop();
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+    GC.Collect();
+    process.Refresh();
+    Console.WriteLine($"[STRESS] frames={frameCount}; elapsed={stopwatch.Elapsed}; " +
+                      $"privateStartMB={privateStart:N1}; privateEndMB={process.PrivateMemorySize64 / bytesPerMegabyte:N1}; " +
+                      $"privateGrowthMB={(process.PrivateMemorySize64 / bytesPerMegabyte) - privateStart:N1}; " +
+                      $"workingSetStartMB={workingSetStart:N1}; workingSetEndMB={process.WorkingSet64 / bytesPerMegabyte:N1}; " +
+                      $"surfaceCreations={pet.RenderSurfaceGeneration - surfaceStart}");
+    pet.Close();
+    return 0;
+}
+
 static IEnumerable<Control> EnumerateControls(Control root)
 {
     foreach (Control child in root.Controls)
@@ -933,6 +1187,57 @@ Check(
 
 var inspector = new NativeProcessInspector();
 Check(inspector.FindListeningProcessId(65534) is null, "unused port lookup");
+using (var inspectionChild = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+           "powershell.exe",
+           "-NoProfile -Command Start-Sleep -Seconds 10")
+       {
+           UseShellExecute = false,
+           CreateNoWindow = true
+       }) ?? throw new InvalidOperationException("Could not start the process-inspection test child."))
+{
+    try
+    {
+        Thread.Sleep(400);
+        var inspectionExceptions = 0;
+        EventHandler<System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs> inspectionHandler = (_, _) =>
+        {
+            inspectionExceptions++;
+        };
+        AppDomain.CurrentDomain.FirstChanceException += inspectionHandler;
+        IReadOnlyList<ProcessGroup> inspectionGroups;
+        try
+        {
+            inspectionGroups = Array.Empty<ProcessGroup>();
+            for (var iteration = 0; iteration < 20; iteration++)
+            {
+                inspectionGroups = inspector.GetDescendantGroups(Environment.ProcessId);
+            }
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= inspectionHandler;
+        }
+
+        var inspectedChild = inspectionGroups
+            .SelectMany(group => group.Processes)
+            .FirstOrDefault(process => process.ProcessId == inspectionChild.Id);
+        Check(inspectionExceptions == 0, "native process inspection avoids first-chance exception storm");
+        Check(inspectedChild is not null, "native process inspection finds direct child");
+        Check(
+            inspectedChild is not null &&
+            !string.IsNullOrWhiteSpace(inspectedChild.ExecutablePath) &&
+            inspectedChild.StartedAt.HasValue,
+            "native process inspection reads child details without exceptions");
+    }
+    finally
+    {
+        if (!inspectionChild.HasExited)
+        {
+            inspectionChild.Kill(true);
+            inspectionChild.WaitForExit(3000);
+        }
+    }
+}
 
 var liveConfigurationLoader = new DevSpaceConfigurationLoader();
 var liveConfiguration = liveConfigurationLoader.Load();

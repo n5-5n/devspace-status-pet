@@ -1,7 +1,7 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DevSpaceStatusPet.Services;
 
@@ -18,6 +18,9 @@ public sealed record ProcessGroup(int RootProcessId, IReadOnlyList<ProcessEntry>
 public sealed class NativeProcessInspector
 {
     private const uint Th32CsSnapProcess = 0x00000002;
+    private const uint ProcessQueryLimitedInformation = 0x00001000;
+    private const int DefaultProcessPathCharacters = 1024;
+    private const int MaximumProcessPathCharacters = 32768;
     private static readonly IntPtr InvalidHandleValue = new(-1);
 
     public int? FindListeningProcessId(int port)
@@ -77,6 +80,7 @@ public sealed class NativeProcessInspector
     public IReadOnlyList<ProcessGroup> GetDescendantGroups(int serverProcessId)
     {
         var entries = SnapshotProcesses();
+        var entriesById = entries.ToDictionary(entry => entry.ProcessId);
         var childrenByParent = entries
             .GroupBy(entry => entry.ParentProcessId)
             .ToDictionary(group => group.Key, group => group.ToArray());
@@ -91,16 +95,22 @@ public sealed class NativeProcessInspector
         {
             var processes = new List<ProcessEntry>();
             var queue = new Queue<int>();
+            var visited = new HashSet<int>();
             queue.Enqueue(root.ProcessId);
 
             while (queue.Count > 0)
             {
                 var processId = queue.Dequeue();
-                var entry = entries.FirstOrDefault(candidate => candidate.ProcessId == processId);
-                if (entry is not null && entry.ProcessId != Environment.ProcessId &&
+                if (!visited.Add(processId))
+                {
+                    continue;
+                }
+
+                if (entriesById.TryGetValue(processId, out var entry) &&
+                    entry.ProcessId != Environment.ProcessId &&
                     !entry.Name.Equals("DevSpaceStatusPet", StringComparison.OrdinalIgnoreCase))
                 {
-                    processes.Add(entry);
+                    processes.Add(ReadProcessDetails(entry));
                 }
 
                 if (!childrenByParent.TryGetValue(processId, out var children))
@@ -127,7 +137,78 @@ public sealed class NativeProcessInspector
         return groups;
     }
 
-    private static IReadOnlyList<ProcessEntry> SnapshotProcesses()
+    private static ProcessEntry ReadProcessDetails(NativeProcessEntry entry)
+    {
+        string? path = null;
+        DateTimeOffset? startedAt = null;
+        var cpu = TimeSpan.Zero;
+
+        var processHandle = OpenProcess(
+            ProcessQueryLimitedInformation,
+            false,
+            unchecked((uint)entry.ProcessId));
+        if (processHandle != IntPtr.Zero)
+        {
+            try
+            {
+                path = TryGetProcessPath(processHandle);
+
+                if (GetProcessTimes(
+                        processHandle,
+                        out var creationTime,
+                        out _,
+                        out var kernelTime,
+                        out var userTime))
+                {
+                    var creationFileTime = ToUInt64(creationTime);
+                    if (creationFileTime is > 0 and <= long.MaxValue)
+                    {
+                        startedAt = new DateTimeOffset(
+                            DateTime.FromFileTimeUtc((long)creationFileTime));
+                    }
+
+                    var totalCpuTicks = ToUInt64(kernelTime) + ToUInt64(userTime);
+                    cpu = TimeSpan.FromTicks((long)Math.Min(totalCpuTicks, (ulong)long.MaxValue));
+                }
+            }
+            finally
+            {
+                _ = CloseHandle(processHandle);
+            }
+        }
+
+        return new ProcessEntry(
+            entry.ProcessId,
+            entry.ParentProcessId,
+            entry.Name,
+            path,
+            startedAt,
+            cpu);
+    }
+
+    private static string? TryGetProcessPath(IntPtr processHandle)
+    {
+        var capacity = DefaultProcessPathCharacters;
+        while (capacity <= MaximumProcessPathCharacters)
+        {
+            var pathBuilder = new StringBuilder(capacity);
+            var length = pathBuilder.Capacity;
+            if (QueryFullProcessImageName(processHandle, 0, pathBuilder, ref length))
+            {
+                return pathBuilder.ToString();
+            }
+
+            if (Marshal.GetLastWin32Error() != 122 || capacity == MaximumProcessPathCharacters)
+            {
+                return null;
+            }
+            capacity = MaximumProcessPathCharacters;
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<NativeProcessEntry> SnapshotProcesses()
     {
         var snapshot = CreateToolhelp32Snapshot(Th32CsSnapProcess, 0);
         if (snapshot == InvalidHandleValue)
@@ -140,36 +221,16 @@ public sealed class NativeProcessInspector
             var native = new ProcessEntry32 { Size = (uint)Marshal.SizeOf<ProcessEntry32>() };
             if (!Process32First(snapshot, ref native))
             {
-                return Array.Empty<ProcessEntry>();
+                return Array.Empty<NativeProcessEntry>();
             }
 
-            var result = new List<ProcessEntry>();
+            var result = new List<NativeProcessEntry>();
             do
             {
-                var name = Path.GetFileNameWithoutExtension(native.ExecutableFile ?? string.Empty);
-                string? path = null;
-                DateTimeOffset? startedAt = null;
-                var cpu = TimeSpan.Zero;
-
-                try
-                {
-                    using var process = Process.GetProcessById(unchecked((int)native.ProcessId));
-                    try { path = process.MainModule?.FileName; } catch { }
-                    try { startedAt = process.StartTime; } catch { }
-                    try { cpu = process.TotalProcessorTime; } catch { }
-                }
-                catch
-                {
-                    // The process may have exited between the native snapshot and managed lookup.
-                }
-
-                result.Add(new ProcessEntry(
+                result.Add(new NativeProcessEntry(
                     unchecked((int)native.ProcessId),
                     unchecked((int)native.ParentProcessId),
-                    name,
-                    path,
-                    startedAt,
-                    cpu));
+                    Path.GetFileNameWithoutExtension(native.ExecutableFile ?? string.Empty)));
             }
             while (Process32Next(snapshot, ref native));
 
@@ -177,9 +238,17 @@ public sealed class NativeProcessInspector
         }
         finally
         {
-            CloseHandle(snapshot);
+            _ = CloseHandle(snapshot);
         }
     }
+
+    private static ulong ToUInt64(FileTime fileTime) =>
+        ((ulong)fileTime.HighDateTime << 32) | fileTime.LowDateTime;
+
+    private readonly record struct NativeProcessEntry(
+        int ProcessId,
+        int ParentProcessId,
+        string Name);
 
     private enum TcpTableClass
     {
@@ -202,7 +271,7 @@ public sealed class NativeProcessInspector
         public uint OwningPid;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct ProcessEntry32
     {
         public uint Size;
@@ -219,6 +288,13 @@ public sealed class NativeProcessInspector
         public string? ExecutableFile;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct FileTime
+    {
+        public readonly uint LowDateTime;
+        public readonly uint HighDateTime;
+    }
+
     [DllImport("iphlpapi.dll", SetLastError = true)]
     private static extern uint GetExtendedTcpTable(
         IntPtr tcpTable,
@@ -231,12 +307,36 @@ public sealed class NativeProcessInspector
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [DllImport("kernel32.dll", EntryPoint = "Process32FirstW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool Process32First(IntPtr snapshot, ref ProcessEntry32 entry);
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool Process32Next(IntPtr snapshot, ref ProcessEntry32 entry);
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(
+        uint desiredAccess,
+        [MarshalAs(UnmanagedType.Bool)] bool inheritHandle,
+        uint processId);
+
+    [DllImport("kernel32.dll", EntryPoint = "QueryFullProcessImageNameW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryFullProcessImageName(
+        IntPtr processHandle,
+        uint flags,
+        StringBuilder executablePath,
+        ref int size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessTimes(
+        IntPtr processHandle,
+        out FileTime creationTime,
+        out FileTime exitTime,
+        out FileTime kernelTime,
+        out FileTime userTime);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr handle);
 }

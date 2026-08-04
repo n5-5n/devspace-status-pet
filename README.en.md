@@ -5,7 +5,7 @@
 A Windows monitor that shows DevSpace activity through a system-tray icon and an animated desktop pet.
 
 > **Stable release: v0.1.5 (Simplified Chinese UI, Chinese documentation, and settings-layout fix)**<br>
-> **Development build: v0.1.6-alpha.2 (long-running memory-leak hotfix)**<br>
+> **Development build: v0.1.6-alpha.3 (process-monitor exception storm and recurring memory-growth hotfix)**<br>
 > The legacy PowerShell v0.1.0 release remains available on GitHub Releases as a rollback option.
 
 ## Features

@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.6-alpha.2
+# DevSpace Status Pet v0.1.6-alpha.3
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.6-alpha.2は、長時間稼働時に数GBまで増える可能性があった描画メモリリークを修正したHotfix Prereleaseです。画面端への収納機能も引き続き利用できます。
+DevSpaceの作業状況を、タスクトレイとデスクトップペットで表示するWindows向けモニターです。v0.1.6-alpha.3は、全プロセス監視で毎秒数百件のアクセス拒否例外が発生し、長時間後にメモリが数GBへ再膨張する問題を修正したHotfix Prereleaseです。画面端への収納機能も引き続き利用できます。
 
 ## 必要環境
 

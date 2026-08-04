@@ -9,8 +9,8 @@
     <RootNamespace>DevSpaceStatusPet</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>0.1.6-alpha.2</Version>
-    <FileVersion>0.1.6.2</FileVersion>
+    <Version>0.1.6-alpha.3</Version>
+    <FileVersion>0.1.6.3</FileVersion>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
