@@ -20,6 +20,8 @@ public sealed class PetForm : Form
     private const int RobotLogicalHeight = 224;
     private const float RobotDesignScale = 1.48f;
     private const int ScreenFitPadding = 16;
+    internal const int EdgeRevealWidth = 34;
+    private static readonly TimeSpan EdgeRevealGuard = TimeSpan.FromMilliseconds(450);
 
     private readonly SettingsStore _settingsStore;
     private readonly PositionStore _positionStore;
@@ -39,6 +41,7 @@ public sealed class PetForm : Form
     private readonly ToolStripMenuItem _englishLanguageItem;
     private readonly ToolStripMenuItem _chineseSimplifiedLanguageItem;
     private readonly ToolStripMenuItem _settingsItem;
+    private readonly ToolStripMenuItem _edgeHideItem;
     private readonly ToolStripMenuItem _resetItem;
     private readonly ToolStripMenuItem _exitItem;
 
@@ -51,6 +54,12 @@ public sealed class PetForm : Form
     private int _watchdogFrameCount;
     private bool _recoveringVisibility;
     private double _effectiveScale = 1.0;
+    private EdgeHiddenSide _edgeHiddenSide;
+    private Rectangle _edgeHiddenWorkingArea = Rectangle.Empty;
+    private Point _normalLocation;
+    private DateTimeOffset _edgeRevealArmedAt = DateTimeOffset.MinValue;
+    private DateTimeOffset _suppressClickUntil = DateTimeOffset.MinValue;
+    private bool _ignoreMouseUp;
 
     public PetForm(SettingsStore settingsStore, PositionStore positionStore, Localizer localizer)
     {
@@ -103,6 +112,7 @@ public sealed class PetForm : Form
         ]);
 
         _settingsItem = new ToolStripMenuItem();
+        _edgeHideItem = new ToolStripMenuItem();
         _resetItem = new ToolStripMenuItem();
         _exitItem = new ToolStripMenuItem();
         _menu.Items.AddRange([
@@ -112,6 +122,7 @@ public sealed class PetForm : Form
             bubbleStyleMenu,
             languageMenu,
             _settingsItem,
+            _edgeHideItem,
             _resetItem,
             new ToolStripSeparator(),
             _exitItem
@@ -132,12 +143,20 @@ public sealed class PetForm : Form
         _englishLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.English);
         _chineseSimplifiedLanguageItem.Click += (_, _) => SetLanguage(UiLanguagePreference.ChineseSimplified);
         _settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _edgeHideItem.Click += (_, _) => ToggleEdgeHidden();
         _resetItem.Click += (_, _) => MoveToBottomRight();
         _exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
         MouseDown += OnPetMouseDown;
         MouseMove += OnPetMouseMove;
         MouseUp += OnPetMouseUp;
+        MouseEnter += (_, _) =>
+        {
+            if (_edgeHiddenSide != EdgeHiddenSide.None && DateTimeOffset.Now >= _edgeRevealArmedAt)
+            {
+                RestoreFromEdge("hover");
+            }
+        };
 
         _animationTimer = new System.Windows.Forms.Timer { Interval = 80 };
         _animationTimer.Tick += (_, _) =>
@@ -166,12 +185,15 @@ public sealed class PetForm : Form
         FormClosed += (_, _) =>
         {
             _animationTimer.Stop();
-            _positionStore.Save(Location);
+            _positionStore.Save(_edgeHiddenSide == EdgeHiddenSide.None ? Location : _normalLocation);
         };
     }
 
     public event EventHandler? SettingsRequested;
     public event EventHandler? ExitRequested;
+
+    internal bool IsEdgeHidden => _edgeHiddenSide != EdgeHiddenSide.None;
+    internal Point NormalLocation => _normalLocation;
 
     protected override CreateParams CreateParams
     {
@@ -200,18 +222,33 @@ public sealed class PetForm : Form
     private void ResizeForContent(AppSettings settings)
     {
         var count = VisibleActivities(settings).Count;
-        var workingArea = Screen.FromRectangle(Bounds).WorkingArea;
+        var workingArea = CurrentWorkingArea();
         _effectiveScale = CalculateEffectiveScale(settings, count, workingArea.Size);
         var target = CalculateClientSize(settings, count, _effectiveScale);
         if (ClientSize == target)
         {
+            if (_edgeHiddenSide != EdgeHiddenSide.None)
+            {
+                PositionAtHiddenEdge();
+            }
             return;
         }
 
-        var bottom = Bottom;
+        var normalBottom = (_edgeHiddenSide == EdgeHiddenSide.None ? Top : _normalLocation.Y) + Height;
         ClientSize = target;
-        Top = bottom - Height;
-        ClampToScreen();
+        if (_edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            Top = normalBottom - Height;
+            ClampToScreen();
+            _normalLocation = Location;
+        }
+        else
+        {
+            _normalLocation = ClampPosition(
+                new Rectangle(_normalLocation.X, normalBottom - Height, Width, Height),
+                WorkingAreas());
+            PositionAtHiddenEdge();
+        }
     }
 
     internal static Size CalculateClientSize(AppSettings settings, int activityCount) =>
@@ -397,9 +434,22 @@ public sealed class PetForm : Form
             return;
         }
 
-        var intersectsWorkingArea = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds));
         var cloaked = IsHandleCreated && LayeredWindowRenderer.IsCloaked(Handle);
         var nativeTopMost = IsHandleCreated && LayeredWindowRenderer.IsTopMost(Handle);
+        if (_edgeHiddenSide != EdgeHiddenSide.None)
+        {
+            if (!Visible || WindowState != FormWindowState.Normal || !TopMost || !nativeTopMost || cloaked)
+            {
+                RecoverEdgeHiddenVisibility(cloaked ? $"{reason}:cloaked" : reason, recreateHandle: cloaked);
+            }
+            else
+            {
+                PositionAtHiddenEdge();
+            }
+            return;
+        }
+
+        var intersectsWorkingArea = Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(Bounds));
         if (!Visible ||
             WindowState != FormWindowState.Normal ||
             !TopMost ||
@@ -411,6 +461,29 @@ public sealed class PetForm : Form
                 cloaked ? $"{reason}:cloaked" : reason,
                 recreateHandle: cloaked);
         }
+    }
+
+    public void RecoverAfterSystemEvent(string reason, bool recreateHandle = false)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => RecoverAfterSystemEvent(reason, recreateHandle)));
+            return;
+        }
+
+        if (_edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            RecoverVisibility(reason, recreateHandle);
+            return;
+        }
+
+        _normalLocation = ClampPosition(new Rectangle(_normalLocation, Size), WorkingAreas());
+        _edgeHiddenWorkingArea = Rectangle.Empty;
+        RecoverEdgeHiddenVisibility(reason, recreateHandle);
     }
 
     public void RecoverVisibility(string reason, bool recreateHandle = false)
@@ -426,6 +499,12 @@ public sealed class PetForm : Form
         }
         if (_recoveringVisibility)
         {
+            return;
+        }
+
+        if (_edgeHiddenSide != EdgeHiddenSide.None)
+        {
+            RestoreFromEdge(reason);
             return;
         }
 
@@ -470,6 +549,232 @@ public sealed class PetForm : Form
         }
     }
 
+    internal void ToggleEdgeHidden()
+    {
+        if (_edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            HideAtNearestEdge();
+        }
+        else
+        {
+            RestoreFromEdge("menu");
+        }
+    }
+
+    internal void HideAtNearestEdge()
+    {
+        if (IsDisposed || _edgeHiddenSide != EdgeHiddenSide.None)
+        {
+            return;
+        }
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(HideAtNearestEdge));
+            return;
+        }
+
+        ClampToScreen();
+        _normalLocation = Location;
+        _positionStore.Save(_normalLocation);
+        var workingAreas = WorkingAreas();
+        var target = ResolveEdgeHideTarget(Bounds, workingAreas, EdgeRevealWidth);
+        _edgeHiddenSide = target.Side;
+        _edgeHiddenWorkingArea = target.WorkingArea;
+        _edgeRevealArmedAt = DateTimeOffset.Now + EdgeRevealGuard;
+        PositionAtHiddenEdge();
+        UpdateMenu(_settingsStore.Current);
+        RenderLayeredWindow("edge-hide");
+        RuntimeLogger.Write(
+            "pet-edge-hidden",
+            $"side={_edgeHiddenSide}; normal={_normalLocation}; hiddenBounds={Bounds}; area={_edgeHiddenWorkingArea}");
+    }
+
+    internal void RestoreFromEdge(string reason)
+    {
+        if (IsDisposed || _edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            return;
+        }
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => RestoreFromEdge(reason)));
+            return;
+        }
+
+        var before = Bounds;
+        _edgeHiddenSide = EdgeHiddenSide.None;
+        _edgeHiddenWorkingArea = Rectangle.Empty;
+        if (reason.Equals("hover", StringComparison.OrdinalIgnoreCase))
+        {
+            _suppressClickUntil = DateTimeOffset.Now + EdgeRevealGuard;
+        }
+        Location = ClampPosition(new Rectangle(_normalLocation, Size), WorkingAreas());
+        _normalLocation = Location;
+        _positionStore.Save(_normalLocation);
+        UpdateMenu(_settingsStore.Current);
+        TopMost = false;
+        TopMost = true;
+        BringToFront();
+        RenderLayeredWindow("edge-restore");
+        RuntimeLogger.Write(
+            "pet-edge-restored",
+            $"reason={reason}; before={before}; after={Bounds}");
+    }
+
+    private void RecoverEdgeHiddenVisibility(string reason, bool recreateHandle)
+    {
+        if (_recoveringVisibility || _edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            return;
+        }
+
+        _recoveringVisibility = true;
+        var before = Bounds;
+        try
+        {
+            WindowState = FormWindowState.Normal;
+            if (!Visible)
+            {
+                Show();
+            }
+            if (recreateHandle && IsHandleCreated)
+            {
+                RecreateHandle();
+            }
+            PositionAtHiddenEdge();
+            TopMost = false;
+            TopMost = true;
+            RenderLayeredWindowCore();
+            _renderFailureCount = 0;
+            RuntimeLogger.Write(
+                "pet-edge-hidden-recovered",
+                $"reason={reason}; before={before}; after={Bounds}; side={_edgeHiddenSide}");
+        }
+        catch (Exception exception)
+        {
+            RuntimeLogger.Write(exception, $"pet-edge-hidden-recovery-failed reason={reason}");
+            CrashLogger.Write(exception, "PetForm.RecoverEdgeHiddenVisibility");
+        }
+        finally
+        {
+            _recoveringVisibility = false;
+        }
+    }
+
+    private void PositionAtHiddenEdge()
+    {
+        if (_edgeHiddenSide == EdgeHiddenSide.None)
+        {
+            return;
+        }
+
+        if (_edgeHiddenWorkingArea == Rectangle.Empty)
+        {
+            var target = ResolveEdgeHideTarget(
+                new Rectangle(_normalLocation, Size),
+                WorkingAreas(),
+                EdgeRevealWidth);
+            _edgeHiddenSide = target.Side;
+            _edgeHiddenWorkingArea = target.WorkingArea;
+        }
+        Location = CalculateEdgeHiddenPosition(
+            new Rectangle(_normalLocation, Size),
+            _edgeHiddenWorkingArea,
+            _edgeHiddenSide,
+            EdgeRevealWidth);
+    }
+
+    internal static EdgeHiddenSide ResolveNearestEdge(Rectangle bounds, Rectangle workingArea)
+    {
+        var windowCenter = bounds.Left + (bounds.Width / 2);
+        var areaCenter = workingArea.Left + (workingArea.Width / 2);
+        return windowCenter <= areaCenter ? EdgeHiddenSide.Left : EdgeHiddenSide.Right;
+    }
+
+    internal static EdgeHideTarget ResolveEdgeHideTarget(
+        Rectangle normalBounds,
+        IReadOnlyList<Rectangle> workingAreas,
+        int revealWidth)
+    {
+        if (workingAreas.Count == 0)
+        {
+            return new EdgeHideTarget(EdgeHiddenSide.Right, normalBounds);
+        }
+
+        var normalCenterX = normalBounds.Left + (normalBounds.Width / 2L);
+        var normalCenterY = normalBounds.Top + (normalBounds.Height / 2L);
+        var bestTarget = new EdgeHideTarget(
+            ResolveNearestEdge(normalBounds, workingAreas[0]),
+            workingAreas[0]);
+        var bestExtraVisibleArea = long.MaxValue;
+        var bestDistance = long.MaxValue;
+
+        foreach (var workingArea in workingAreas)
+        {
+            foreach (var side in new[] { EdgeHiddenSide.Left, EdgeHiddenSide.Right })
+            {
+                var hiddenLocation = CalculateEdgeHiddenPosition(
+                    normalBounds,
+                    workingArea,
+                    side,
+                    revealWidth);
+                var hiddenBounds = new Rectangle(hiddenLocation, normalBounds.Size);
+                var targetVisibleArea = IntersectionArea(hiddenBounds, workingArea);
+                var totalVisibleArea = workingAreas.Sum(area => IntersectionArea(hiddenBounds, area));
+                var extraVisibleArea = Math.Max(0L, totalVisibleArea - targetVisibleArea);
+                var edgeX = side == EdgeHiddenSide.Left ? workingArea.Left : workingArea.Right;
+                var hiddenCenterY = hiddenBounds.Top + (hiddenBounds.Height / 2L);
+                var distance = Math.Abs(normalCenterX - edgeX) + Math.Abs(normalCenterY - hiddenCenterY);
+
+                if (extraVisibleArea < bestExtraVisibleArea ||
+                    (extraVisibleArea == bestExtraVisibleArea && distance < bestDistance))
+                {
+                    bestTarget = new EdgeHideTarget(side, workingArea);
+                    bestExtraVisibleArea = extraVisibleArea;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        return bestTarget;
+    }
+
+    private static long IntersectionArea(Rectangle first, Rectangle second)
+    {
+        var intersection = Rectangle.Intersect(first, second);
+        return intersection.IsEmpty ? 0L : (long)intersection.Width * intersection.Height;
+    }
+
+    internal static Point CalculateEdgeHiddenPosition(
+        Rectangle normalBounds,
+        Rectangle workingArea,
+        EdgeHiddenSide side,
+        int revealWidth)
+    {
+        var visibleWidth = Math.Clamp(revealWidth, 1, Math.Max(1, normalBounds.Width));
+        var x = side == EdgeHiddenSide.Left
+            ? workingArea.Left - normalBounds.Width + visibleWidth
+            : workingArea.Right - visibleWidth;
+        var y = Math.Clamp(
+            normalBounds.Top,
+            workingArea.Top,
+            Math.Max(workingArea.Top, workingArea.Bottom - normalBounds.Height));
+        return new Point(x, y);
+    }
+
+    private Rectangle CurrentWorkingArea()
+    {
+        var anchor = _edgeHiddenSide == EdgeHiddenSide.None
+            ? Bounds
+            : new Rectangle(_normalLocation, Size);
+        return Screen.FromRectangle(anchor).WorkingArea;
+    }
+
+    private static Rectangle[] WorkingAreas() => Screen.AllScreens
+        .OrderByDescending(screen => screen.Primary)
+        .Select(screen => screen.WorkingArea)
+        .ToArray();
+
     private void RenderContent(Graphics graphics)
     {
         var settings = _settingsStore.Current;
@@ -487,6 +792,10 @@ public sealed class PetForm : Form
         }
 
         DrawRobot(graphics, bubbleAreaHeight, settings);
+        if (_edgeHiddenSide != EdgeHiddenSide.None)
+        {
+            DrawEdgeHandle(graphics, settings);
+        }
     }
 
     private void DrawBubbles(Graphics graphics, IReadOnlyList<DevSpaceActivity> activities, AppSettings settings)
@@ -852,6 +1161,41 @@ public sealed class PetForm : Form
         graphics.Restore(transform);
     }
 
+    private void DrawEdgeHandle(Graphics graphics, AppSettings settings)
+    {
+        var logicalSurfaceWidth = (float)(ClientSize.Width / Math.Max(0.1, _effectiveScale));
+        var logicalSurfaceHeight = (float)(ClientSize.Height / Math.Max(0.1, _effectiveScale));
+        var handleWidth = Math.Max(18f, (float)(EdgeRevealWidth / Math.Max(0.1, _effectiveScale)));
+        var handleHeight = Math.Min(72f, Math.Max(44f, logicalSurfaceHeight * 0.18f));
+        var x = _edgeHiddenSide == EdgeHiddenSide.Left ? logicalSurfaceWidth - handleWidth : 0f;
+        var y = Math.Max(6f, (logicalSurfaceHeight - handleHeight) / 2f);
+        var palette = Palette.For(settings.ResolvedTheme, settings.ResolvedBubbleTheme, _snapshot.State);
+        var rectangle = new RectangleF(x, y, handleWidth, handleHeight);
+        using var path = RoundedRectangle(rectangle, Math.Min(10f, handleWidth / 2f));
+        using var background = new SolidBrush(Color.FromArgb(238, palette.BubbleBackground));
+        using var border = new Pen(palette.Outline, 1.5f);
+        using var arrow = new Pen(palette.StateColor, 2.6f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+        graphics.FillPath(background, path);
+        graphics.DrawPath(border, path);
+
+        var centerX = rectangle.Left + (rectangle.Width / 2f);
+        var centerY = rectangle.Top + (rectangle.Height / 2f);
+        var direction = _edgeHiddenSide == EdgeHiddenSide.Left ? 1f : -1f;
+        var halfWidth = Math.Min(4.5f, rectangle.Width * 0.2f);
+        var halfHeight = 8f;
+        graphics.DrawLines(arrow,
+        [
+            new PointF(centerX - (direction * halfWidth), centerY - halfHeight),
+            new PointF(centerX + (direction * halfWidth), centerY),
+            new PointF(centerX - (direction * halfWidth), centerY + halfHeight)
+        ]);
+    }
+
     private void UpdateMenu(AppSettings settings)
     {
         _bubbleItem.Text = _localizer["ShowBubble"];
@@ -890,6 +1234,7 @@ public sealed class PetForm : Form
         _englishLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.English;
         _chineseSimplifiedLanguageItem.Checked = settings.LanguagePreference == UiLanguagePreference.ChineseSimplified;
         _settingsItem.Text = _localizer["Settings"];
+        _edgeHideItem.Text = _localizer[_edgeHiddenSide == EdgeHiddenSide.None ? "HideAtEdge" : "RestoreFromEdge"];
         _resetItem.Text = _localizer["ResetPosition"];
         _exitItem.Text = _localizer["Exit"];
     }
@@ -910,6 +1255,17 @@ public sealed class PetForm : Form
     {
         if (e.Button != MouseButtons.Left)
         {
+            return;
+        }
+        if (DateTimeOffset.Now < _suppressClickUntil)
+        {
+            _ignoreMouseUp = true;
+            return;
+        }
+        if (_edgeHiddenSide != EdgeHiddenSide.None)
+        {
+            _ignoreMouseUp = true;
+            RestoreFromEdge("click");
             return;
         }
         _dragging = true;
@@ -940,12 +1296,19 @@ public sealed class PetForm : Form
             return;
         }
 
+        if (_ignoreMouseUp)
+        {
+            _ignoreMouseUp = false;
+            return;
+        }
+
         _dragging = false;
         if (_dragMoved)
         {
             ResizeForContent(_settingsStore.Current);
             ClampToScreen();
-            _positionStore.Save(Location);
+            _normalLocation = Location;
+            _positionStore.Save(_normalLocation);
         }
         else
         {
@@ -960,6 +1323,7 @@ public sealed class PetForm : Form
         {
             Location = saved.Value;
             ClampToScreen();
+            _normalLocation = Location;
             return;
         }
         MoveToBottomRight();
@@ -967,17 +1331,19 @@ public sealed class PetForm : Form
 
     private void MoveToBottomRight()
     {
+        _edgeHiddenSide = EdgeHiddenSide.None;
+        _edgeHiddenWorkingArea = Rectangle.Empty;
         var area = Screen.FromControl(this).WorkingArea;
         Location = new Point(area.Right - Width - 20, area.Bottom - Height - 12);
-        _positionStore.Save(Location);
+        _normalLocation = Location;
+        _positionStore.Save(_normalLocation);
+        UpdateMenu(_settingsStore.Current);
+        RenderLayeredWindow("reset-position");
     }
 
     private void ClampToScreen()
     {
-        var workingAreas = Screen.AllScreens
-            .OrderByDescending(screen => screen.Primary)
-            .Select(screen => screen.WorkingArea)
-            .ToArray();
+        var workingAreas = WorkingAreas();
         if (workingAreas.Length == 0)
         {
             return;
@@ -1092,3 +1458,12 @@ public sealed class PetForm : Form
         }
     }
 }
+
+internal enum EdgeHiddenSide
+{
+    None,
+    Left,
+    Right
+}
+
+internal readonly record struct EdgeHideTarget(EdgeHiddenSide Side, Rectangle WorkingArea);

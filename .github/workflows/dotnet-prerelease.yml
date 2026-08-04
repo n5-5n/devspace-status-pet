@@ -52,6 +52,7 @@ jobs:
           $exe = ".\artifacts\DevSpace-Status-Pet-v$version-win-x64-publish\DevSpaceStatusPet.exe"
           .\tests\UiLiveSettingsSmoke.ps1 -ExecutablePath $exe
           .\tests\UiRecoverySmoke.ps1 -ExecutablePath $exe -StabilitySeconds 10
+          .\tests\UiEdgeHideSmoke.ps1 -ExecutablePath $exe
 
       - name: Create GitHub release
         shell: powershell

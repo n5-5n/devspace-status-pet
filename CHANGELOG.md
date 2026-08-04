@@ -2,6 +2,25 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.6-alpha.1] - 2026-08-05
+
+### Added
+
+- Added a pet context-menu command that hides the pet at the nearest left or right screen edge.
+- Leaves a 34-pixel visible restore handle and restores the previous position on hover or click.
+- Added Japanese, English, and Simplified Chinese labels for hiding and restoring from the screen edge.
+
+### Fixed
+
+- Keeps intentional edge hiding separate from off-screen recovery so the watchdog does not immediately undo it.
+- Preserves the normal on-screen position when resizing, recovering, exiting, or resetting the pet.
+- Prevents the restore click from also toggling bubble visibility.
+
+### Tested
+
+- Added nearest-edge, reveal-width, vertical-position, hidden-watchdog, handle-rendering, and restore-position regression tests.
+- Re-ran the multilingual localization, 108-combination rendering, low-resolution, updater, installer, and recovery test suites.
+
 ## [0.1.5] - 2026-08-03
 
 ### Stable release
