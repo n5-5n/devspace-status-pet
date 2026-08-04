@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.6-alpha.2
+# DevSpace Status Pet v0.1.6-alpha.3
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.6-alpha.2 is a hotfix prerelease for a layered-window memory leak that could grow to several gigabytes during long-running animation. Screen-edge hiding remains available.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.6-alpha.3 is a hotfix prerelease for a process-monitoring exception storm that could make memory grow back to several gigabytes during long runs. Screen-edge hiding remains available.
 
 ## Requirements
 
