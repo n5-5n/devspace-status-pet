@@ -397,6 +397,15 @@ using (var chineseMenuPet = new PetForm(
 Check(AppPaths.RuntimeLogPath.EndsWith("runtime.log", StringComparison.OrdinalIgnoreCase), "runtime diagnostics path");
 Check(!LayeredWindowRenderer.IsCloaked(IntPtr.Zero), "zero-handle cloak check");
 Check(!LayeredWindowRenderer.IsTopMost(IntPtr.Zero), "zero-handle topmost check");
+using (var reusableSurface = new LayeredWindowRenderer.Surface(new Size(64, 64)))
+{
+    var surfaceGraphics = reusableSurface.BeginDraw();
+    using var surfaceBrush = new SolidBrush(Color.FromArgb(160, 20, 140, 240));
+    surfaceGraphics.FillEllipse(surfaceBrush, 8, 8, 48, 48);
+    using var surfaceCapture = reusableSurface.CaptureBitmap();
+    Check(surfaceCapture.GetPixel(0, 0).A == 0, "reusable DIB keeps transparent background");
+    Check(surfaceCapture.GetPixel(32, 32).A is >= 150 and <= 170, "reusable DIB keeps per-pixel alpha");
+}
 using (var topMostPet = new PetForm(
            new SettingsStore(new AppSettings()),
            new PositionStore(null),
@@ -405,6 +414,17 @@ using (var topMostPet = new PetForm(
     topMostPet.Show();
     Application.DoEvents();
     Check(LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost initial state");
+    var initialSurfaceGeneration = topMostPet.RenderSurfaceGeneration;
+    var initialGdiObjects = NativeWindowTest.GetGuiResourceCount(0);
+    for (var frameIndex = 0; frameIndex < 500; frameIndex++)
+    {
+        topMostPet.RenderFrameForTesting();
+    }
+    var finalGdiObjects = NativeWindowTest.GetGuiResourceCount(0);
+    Check(
+        initialSurfaceGeneration == 1 && topMostPet.RenderSurfaceGeneration == initialSurfaceGeneration,
+        "layered render surface reused across frames");
+    Check(finalGdiObjects <= initialGdiObjects + 2, "reused layered surface keeps GDI objects stable");
     NativeWindowTest.SetTopMost(topMostPet.Handle, enabled: false);
     Application.DoEvents();
     Check(topMostPet.TopMost && !LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost loss simulation");
@@ -944,6 +964,9 @@ internal static class NativeWindowTest
     private static readonly IntPtr NotTopMost = new(-2);
     private const uint NoMoveNoSizeNoActivate = 0x0001 | 0x0002 | 0x0010;
 
+    public static uint GetGuiResourceCount(uint resourceType) =>
+        GetGuiResources(System.Diagnostics.Process.GetCurrentProcess().Handle, resourceType);
+
     public static void SetTopMost(IntPtr windowHandle, bool enabled)
     {
         if (!SetWindowPos(
@@ -958,6 +981,9 @@ internal static class NativeWindowTest
             throw new InvalidOperationException("Could not change the test window topmost state.");
         }
     }
+
+    [DllImport("user32.dll")]
+    private static extern uint GetGuiResources(IntPtr processHandle, uint flags);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(

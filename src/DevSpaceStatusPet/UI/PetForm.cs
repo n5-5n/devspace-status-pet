@@ -60,6 +60,8 @@ public sealed class PetForm : Form
     private DateTimeOffset _edgeRevealArmedAt = DateTimeOffset.MinValue;
     private DateTimeOffset _suppressClickUntil = DateTimeOffset.MinValue;
     private bool _ignoreMouseUp;
+    private LayeredWindowRenderer.Surface? _renderSurface;
+    private int _renderSurfaceGeneration;
 
     public PetForm(SettingsStore settingsStore, PositionStore positionStore, Localizer localizer)
     {
@@ -185,6 +187,8 @@ public sealed class PetForm : Form
         FormClosed += (_, _) =>
         {
             _animationTimer.Stop();
+            _renderSurface?.Dispose();
+            _renderSurface = null;
             _positionStore.Save(_edgeHiddenSide == EdgeHiddenSide.None ? Location : _normalLocation);
         };
     }
@@ -194,6 +198,9 @@ public sealed class PetForm : Form
 
     internal bool IsEdgeHidden => _edgeHiddenSide != EdgeHiddenSide.None;
     internal Point NormalLocation => _normalLocation;
+    internal int RenderSurfaceGeneration => _renderSurfaceGeneration;
+
+    internal void RenderFrameForTesting() => RenderLayeredWindow("test");
 
     protected override CreateParams CreateParams
     {
@@ -414,12 +421,20 @@ public sealed class PetForm : Form
             return;
         }
 
-        using var bitmap = RenderLayerBitmap();
+        if (_renderSurface is null || _renderSurface.Size != ClientSize)
+        {
+            _renderSurface?.Dispose();
+            _renderSurface = new LayeredWindowRenderer.Surface(ClientSize);
+            _renderSurfaceGeneration++;
+        }
+
+        var graphics = _renderSurface.BeginDraw();
+        RenderContent(graphics);
         var opacity = (byte)Math.Clamp(
             (int)Math.Round(_settingsStore.Current.Opacity * byte.MaxValue),
             byte.MinValue,
             byte.MaxValue);
-        LayeredWindowRenderer.Apply(this, bitmap, opacity);
+        _renderSurface.Apply(this, opacity);
     }
 
     public void VerifyVisibility(string reason)

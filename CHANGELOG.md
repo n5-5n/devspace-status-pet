@@ -2,6 +2,21 @@
 
 All notable changes to DevSpace Status Pet are documented here.
 
+## [0.1.6-alpha.2] - 2026-08-05
+
+### Fixed
+
+- Fixed a severe native-memory leak that could grow the process to several gigabytes during long-running animation.
+- Replaced per-frame layered-window Bitmap and HBITMAP allocation with a reusable 32-bit DIB section, memory DC, and Graphics surface.
+- Recreates the render surface only when the pet window size changes and releases it when the form closes.
+
+### Tested
+
+- Verified transparent background, per-pixel alpha, and unchanged multilingual rendering across all 108 combinations.
+- Added a 500-frame render-surface reuse test with stable GDI object counts.
+- Added a live memory-stability test that tracks Private Bytes, Working Set, GDI, USER, handles, threads, and responsiveness.
+- Confirmed four-minute live memory stability: Private Bytes 67.4 MB to 66.5 MB and GDI objects 52 to 52.
+
 ## [0.1.6-alpha.1] - 2026-08-05
 
 ### Added

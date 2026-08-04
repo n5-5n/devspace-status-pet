@@ -53,6 +53,7 @@ jobs:
           .\tests\UiLiveSettingsSmoke.ps1 -ExecutablePath $exe
           .\tests\UiRecoverySmoke.ps1 -ExecutablePath $exe -StabilitySeconds 10
           .\tests\UiEdgeHideSmoke.ps1 -ExecutablePath $exe
+          .\tests\UiMemoryStabilitySmoke.ps1 -ExecutablePath $exe -SampleSeconds 60
 
       - name: Create GitHub release
         shell: powershell
