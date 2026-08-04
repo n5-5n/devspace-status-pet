@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.6-alpha.1
+# DevSpace Status Pet v0.1.6-alpha.2
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-一个面向 Windows 的 DevSpace 状态监视器，通过系统托盘图标和桌面宠物显示工作状态。v0.1.6-alpha.1 是可将宠物隐藏到最近屏幕边缘，并通过悬停或点击可见把手恢复的 Prerelease。
+一个面向 Windows 的 DevSpace 状态监视器，通过系统托盘图标和桌面宠物显示工作状态。v0.1.6-alpha.2 是修复分层窗口绘制内存泄漏的 Hotfix Prerelease；该问题在长时间运行时可能增长到数 GB。隐藏到屏幕边缘的功能仍然可用。
 
 ## 系统要求
 

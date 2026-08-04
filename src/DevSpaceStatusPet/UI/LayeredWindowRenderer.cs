@@ -12,85 +12,191 @@ internal static class LayeredWindowRenderer
 
     private const int GwlExStyle = -20;
     private const int UlwAlpha = 0x00000002;
+    private const uint DibRgbColors = 0;
+    private const uint BiRgb = 0;
     private const byte AcSrcOver = 0x00;
     private const byte AcSrcAlpha = 0x01;
 
-    public static void Apply(Form form, Bitmap bitmap, byte opacity)
+    internal sealed class Surface : IDisposable
     {
-        if (!OperatingSystem.IsWindows() ||
-            !form.IsHandleCreated ||
-            form.IsDisposed ||
-            bitmap.Width <= 0 ||
-            bitmap.Height <= 0)
-        {
-            return;
-        }
+        private readonly Size _size;
+        private IntPtr _memoryDc;
+        private IntPtr _bitmapHandle;
+        private IntPtr _previousObject;
+        private Bitmap? _bitmap;
+        private Graphics? _graphics;
+        private bool _disposed;
 
-        var screenDc = GetDC(IntPtr.Zero);
-        if (screenDc == IntPtr.Zero)
+        public Surface(Size size)
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not acquire the screen device context.");
-        }
+            _size = new Size(Math.Max(1, size.Width), Math.Max(1, size.Height));
 
-        var memoryDc = IntPtr.Zero;
-        var bitmapHandle = IntPtr.Zero;
-        var previousObject = IntPtr.Zero;
-
-        try
-        {
-            memoryDc = CreateCompatibleDC(screenDc);
-            if (memoryDc == IntPtr.Zero)
+            var screenDc = GetDC(IntPtr.Zero);
+            if (screenDc == IntPtr.Zero)
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the layered-window device context.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not acquire the screen device context.");
             }
 
-            bitmapHandle = bitmap.GetHbitmap(Color.FromArgb(0));
-            previousObject = SelectObject(memoryDc, bitmapHandle);
-            if (previousObject == IntPtr.Zero || previousObject == new IntPtr(-1))
+            try
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not select the layered-window bitmap.");
-            }
+                _memoryDc = CreateCompatibleDC(screenDc);
+                if (_memoryDc == IntPtr.Zero)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the layered-window device context.");
+                }
 
-            var destination = new NativePoint(form.Left, form.Top);
-            var source = new NativePoint(0, 0);
-            var size = new NativeSize(bitmap.Width, bitmap.Height);
-            var blend = new BlendFunction
-            {
-                BlendOp = AcSrcOver,
-                BlendFlags = 0,
-                SourceConstantAlpha = opacity,
-                AlphaFormat = AcSrcAlpha
-            };
+                var bitmapInfo = new BitmapInfo
+                {
+                    Header = new BitmapInfoHeader
+                    {
+                        Size = (uint)Marshal.SizeOf<BitmapInfoHeader>(),
+                        Width = _size.Width,
+                        Height = -_size.Height,
+                        Planes = 1,
+                        BitCount = 32,
+                        Compression = BiRgb,
+                        SizeImage = checked((uint)(_size.Width * _size.Height * 4))
+                    }
+                };
 
-            if (!UpdateLayeredWindow(
-                    form.Handle,
+                _bitmapHandle = CreateDIBSection(
                     screenDc,
-                    ref destination,
-                    ref size,
-                    memoryDc,
-                    ref source,
-                    0,
-                    ref blend,
-                    UlwAlpha))
+                    ref bitmapInfo,
+                    DibRgbColors,
+                    out var bits,
+                    IntPtr.Zero,
+                    0);
+                if (_bitmapHandle == IntPtr.Zero || bits == IntPtr.Zero)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the layered-window DIB surface.");
+                }
+
+                _previousObject = SelectObject(_memoryDc, _bitmapHandle);
+                if (_previousObject == IntPtr.Zero || _previousObject == new IntPtr(-1))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not select the layered-window DIB surface.");
+                }
+
+                _bitmap = new Bitmap(
+                    _size.Width,
+                    _size.Height,
+                    checked(_size.Width * 4),
+                    PixelFormat.Format32bppPArgb,
+                    bits);
+                _graphics = Graphics.FromImage(_bitmap);
+            }
+            catch
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not update the layered pet window.");
+                Dispose();
+                throw;
+            }
+            finally
+            {
+                _ = ReleaseDC(IntPtr.Zero, screenDc);
             }
         }
-        finally
+
+        public Size Size => _size;
+
+        public Graphics BeginDraw()
         {
-            if (previousObject != IntPtr.Zero && previousObject != new IntPtr(-1) && memoryDc != IntPtr.Zero)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var graphics = _graphics ?? throw new ObjectDisposedException(nameof(Surface));
+            graphics.ResetTransform();
+            graphics.ResetClip();
+            graphics.Clear(Color.Transparent);
+            return graphics;
+        }
+
+        internal Bitmap CaptureBitmap()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var bitmap = _bitmap ?? throw new ObjectDisposedException(nameof(Surface));
+            return bitmap.Clone(
+                new Rectangle(Point.Empty, _size),
+                PixelFormat.Format32bppPArgb);
+        }
+
+        public void Apply(Form form, byte opacity)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!OperatingSystem.IsWindows() ||
+                !form.IsHandleCreated ||
+                form.IsDisposed)
             {
-                _ = SelectObject(memoryDc, previousObject);
+                return;
             }
-            if (bitmapHandle != IntPtr.Zero)
+
+            var screenDc = GetDC(IntPtr.Zero);
+            if (screenDc == IntPtr.Zero)
             {
-                _ = DeleteObject(bitmapHandle);
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not acquire the screen device context.");
             }
-            if (memoryDc != IntPtr.Zero)
+
+            try
             {
-                _ = DeleteDC(memoryDc);
+                var destination = new NativePoint(form.Left, form.Top);
+                var source = new NativePoint(0, 0);
+                var nativeSize = new NativeSize(_size.Width, _size.Height);
+                var blend = new BlendFunction
+                {
+                    BlendOp = AcSrcOver,
+                    BlendFlags = 0,
+                    SourceConstantAlpha = opacity,
+                    AlphaFormat = AcSrcAlpha
+                };
+
+                if (!UpdateLayeredWindow(
+                        form.Handle,
+                        screenDc,
+                        ref destination,
+                        ref nativeSize,
+                        _memoryDc,
+                        ref source,
+                        0,
+                        ref blend,
+                        UlwAlpha))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not update the layered pet window.");
+                }
             }
-            _ = ReleaseDC(IntPtr.Zero, screenDc);
+            finally
+            {
+                _ = ReleaseDC(IntPtr.Zero, screenDc);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+
+            _graphics?.Dispose();
+            _graphics = null;
+            _bitmap?.Dispose();
+            _bitmap = null;
+
+            if (_previousObject != IntPtr.Zero &&
+                _previousObject != new IntPtr(-1) &&
+                _memoryDc != IntPtr.Zero)
+            {
+                _ = SelectObject(_memoryDc, _previousObject);
+            }
+            _previousObject = IntPtr.Zero;
+
+            if (_bitmapHandle != IntPtr.Zero)
+            {
+                _ = DeleteObject(_bitmapHandle);
+                _bitmapHandle = IntPtr.Zero;
+            }
+            if (_memoryDc != IntPtr.Zero)
+            {
+                _ = DeleteDC(_memoryDc);
+                _memoryDc = IntPtr.Zero;
+            }
         }
     }
 
@@ -160,6 +266,28 @@ internal static class LayeredWindowRenderer
         public byte AlphaFormat;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BitmapInfoHeader
+    {
+        public uint Size;
+        public int Width;
+        public int Height;
+        public ushort Planes;
+        public ushort BitCount;
+        public uint Compression;
+        public uint SizeImage;
+        public int XPelsPerMeter;
+        public int YPelsPerMeter;
+        public uint ClrUsed;
+        public uint ClrImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BitmapInfo
+    {
+        public BitmapInfoHeader Header;
+    }
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr GetDC(IntPtr windowHandle);
 
@@ -177,6 +305,15 @@ internal static class LayeredWindowRenderer
 
     [DllImport("gdi32.dll", SetLastError = true)]
     private static extern bool DeleteObject(IntPtr graphicsObject);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern IntPtr CreateDIBSection(
+        IntPtr deviceContext,
+        ref BitmapInfo bitmapInfo,
+        uint usage,
+        out IntPtr bits,
+        IntPtr section,
+        uint offset);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(

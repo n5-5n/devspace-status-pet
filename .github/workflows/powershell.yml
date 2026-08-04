@@ -67,3 +67,7 @@ jobs:
       - name: Smoke-test screen-edge hide and restore
         shell: powershell
         run: .\tests\UiEdgeHideSmoke.ps1 -ExecutablePath .\artifacts\dotnet-current\DevSpaceStatusPet.exe
+
+      - name: Smoke-test memory stability
+        shell: powershell
+        run: .\tests\UiMemoryStabilitySmoke.ps1 -ExecutablePath .\artifacts\dotnet-current\DevSpaceStatusPet.exe -SampleSeconds 60
