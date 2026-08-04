@@ -443,11 +443,11 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         try
         {
-            _petForm.RecoverVisibility(reason, recreateHandle: true);
+            _petForm.RecoverAfterSystemEvent(reason, recreateHandle: true);
             await Task.Delay(TimeSpan.FromSeconds(2));
             if (!_petForm.IsDisposed)
             {
-                _petForm.RecoverVisibility($"{reason}-delayed", recreateHandle: false);
+                _petForm.RecoverAfterSystemEvent($"{reason}-delayed", recreateHandle: false);
             }
         }
         catch (Exception exception)

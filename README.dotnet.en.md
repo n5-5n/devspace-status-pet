@@ -1,8 +1,8 @@
-# DevSpace Status Pet v0.1.5
+# DevSpace Status Pet v0.1.6-alpha.1
 
 **[日本語](README.dotnet.md) | [English](README.dotnet.en.md) | [简体中文](README.dotnet.zh-CN.md)**
 
-A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.5 is the stable release with complete Simplified Chinese localization, automatic Chinese OS detection, Chinese documentation, and the settings-layout fix.
+A Windows monitor that shows DevSpace activity through a tray icon and an animated desktop pet. v0.1.6-alpha.1 is a prerelease that can hide the pet at the nearest screen edge and restore it by hovering or clicking the visible handle.
 
 ## Requirements
 
@@ -43,6 +43,7 @@ Existing PowerShell and .NET settings are reused automatically.
 - Dark context menus and settings window
 - Japanese, English, Simplified Chinese, and automatic OS-language selection
 - Immediate size, opacity, timing, and bubble-count changes
+- Hide at the nearest screen edge from the context menu and restore by hovering or clicking the visible handle
 - Automatically fits oversized layouts inside the current monitor
 - GitHub Release discovery and manual updates with SHA-256 verification
 - Stable or optional prerelease update channels

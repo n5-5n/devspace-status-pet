@@ -18,7 +18,8 @@ $files = @(
     'tests\InstallSmoke.ps1',
     'tests\DotNetInstallSmoke.ps1',
     'tests\UiLiveSettingsSmoke.ps1',
-    'tests\UiRecoverySmoke.ps1'
+    'tests\UiRecoverySmoke.ps1',
+    'tests\UiEdgeHideSmoke.ps1'
 )
 
 $failed = $false

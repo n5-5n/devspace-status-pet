@@ -351,9 +351,13 @@ Check(localizer.State(ActivityState.Working) == "Working", "English localization
 current.Language = "Japanese";
 Check(localizer.State(ActivityState.Working) == "作業中", "Japanese localization");
 Check(localizer["ShowRecoverPet"] == "ペットを表示／復旧", "pet recovery menu localization");
+Check(localizer["HideAtEdge"] == "画面端に隠す", "Japanese edge-hide localization");
+Check(localizer["RestoreFromEdge"] == "画面端から戻す", "Japanese edge-restore localization");
 current.Language = "ChineseSimplified";
 Check(localizer.State(ActivityState.Working) == "工作中", "simplified Chinese localization");
 Check(localizer["ShowRecoverPet"] == "显示／恢复宠物", "simplified Chinese recovery menu localization");
+Check(localizer["HideAtEdge"] == "隐藏到屏幕边缘", "simplified Chinese edge-hide localization");
+Check(localizer["RestoreFromEdge"] == "从屏幕边缘恢复", "simplified Chinese edge-restore localization");
 Check(localizer["CheckUpdates"] == "检查更新", "simplified Chinese updater localization");
 Check(localizer.Get("InstalledMessage", "C:\\Test").Contains("已安装", StringComparison.Ordinal), "simplified Chinese installer localization");
 Check(localizer.Get("ApplicationError", "错误", "crash.log").Contains("遇到错误", StringComparison.Ordinal), "simplified Chinese error localization");
@@ -408,6 +412,78 @@ using (var topMostPet = new PetForm(
     Application.DoEvents();
     Check(LayeredWindowRenderer.IsTopMost(topMostPet.Handle), "native topmost watchdog recovery");
     topMostPet.Close();
+}
+
+var edgeArea = new Rectangle(100, 50, 1200, 800);
+var leftBounds = new Rectangle(140, 180, 320, 420);
+var rightBounds = new Rectangle(900, 180, 320, 420);
+Check(PetForm.ResolveNearestEdge(leftBounds, edgeArea) == EdgeHiddenSide.Left, "nearest left edge selection");
+Check(PetForm.ResolveNearestEdge(rightBounds, edgeArea) == EdgeHiddenSide.Right, "nearest right edge selection");
+var leftHidden = PetForm.CalculateEdgeHiddenPosition(leftBounds, edgeArea, EdgeHiddenSide.Left, PetForm.EdgeRevealWidth);
+var rightHidden = PetForm.CalculateEdgeHiddenPosition(rightBounds, edgeArea, EdgeHiddenSide.Right, PetForm.EdgeRevealWidth);
+Check(leftHidden.X + leftBounds.Width - edgeArea.Left == PetForm.EdgeRevealWidth, "left edge reveal width");
+Check(edgeArea.Right - rightHidden.X == PetForm.EdgeRevealWidth, "right edge reveal width");
+Check(leftHidden.Y == leftBounds.Y && rightHidden.Y == rightBounds.Y, "edge hide preserves vertical position");
+var primaryArea = new Rectangle(0, 0, 1000, 800);
+var adjacentRightArea = new Rectangle(1000, 200, 800, 600);
+var nearRightOnPrimary = new Rectangle(680, 300, 300, 400);
+var exposedTarget = PetForm.ResolveEdgeHideTarget(
+    nearRightOnPrimary,
+    [primaryArea, adjacentRightArea],
+    PetForm.EdgeRevealWidth);
+Check(
+    exposedTarget.Side == EdgeHiddenSide.Left && exposedTarget.WorkingArea == primaryArea,
+    "edge hide avoids an adjacent monitor");
+var adjacentLeftArea = new Rectangle(-800, 100, 800, 600);
+var outerTarget = PetForm.ResolveEdgeHideTarget(
+    nearRightOnPrimary,
+    [primaryArea, adjacentRightArea, adjacentLeftArea],
+    PetForm.EdgeRevealWidth);
+Check(
+    outerTarget.Side == EdgeHiddenSide.Right && outerTarget.WorkingArea == adjacentRightArea,
+    "edge hide selects the nearest exposed desktop perimeter");
+
+using (var edgePet = new PetForm(
+           new SettingsStore(new AppSettings { ShowBubble = false, Scale = 1.0 }),
+           new PositionStore(null),
+           new Localizer(() => new AppSettings { ShowBubble = false, Scale = 1.0 })))
+{
+    edgePet.ApplySnapshot(DevSpaceSnapshot.Initial("config.json", "serve.log", 7676));
+    edgePet.Show();
+    Application.DoEvents();
+    var normalLocation = edgePet.Location;
+    edgePet.HideAtNearestEdge();
+    Application.DoEvents();
+    var hiddenLocation = edgePet.Location;
+    Check(edgePet.IsEdgeHidden, "pet enters edge-hidden state");
+    Check(edgePet.NormalLocation == normalLocation, "edge hide preserves normal position");
+    edgePet.RecoverAfterSystemEvent("smoke-display-change", recreateHandle: false);
+    Application.DoEvents();
+    Check(edgePet.IsEdgeHidden, "system-event recovery preserves intentional edge hide");
+    hiddenLocation = edgePet.Location;
+    edgePet.VerifyVisibility("smoke-edge-hidden");
+    Application.DoEvents();
+    Check(edgePet.IsEdgeHidden && edgePet.Location == hiddenLocation, "watchdog preserves intentional edge hide");
+    using var edgePreview = edgePet.RenderTransparentPreview();
+    var side = PetForm.ResolveNearestEdge(new Rectangle(normalLocation, edgePet.Size), Screen.FromControl(edgePet).WorkingArea);
+    var startX = side == EdgeHiddenSide.Left ? Math.Max(0, edgePreview.Width - PetForm.EdgeRevealWidth) : 0;
+    var endX = side == EdgeHiddenSide.Left ? edgePreview.Width : Math.Min(edgePreview.Width, PetForm.EdgeRevealWidth);
+    var visibleEdgePixels = 0;
+    for (var y = 0; y < edgePreview.Height; y++)
+    {
+        for (var x = startX; x < endX; x++)
+        {
+            if (edgePreview.GetPixel(x, y).A > 0)
+            {
+                visibleEdgePixels++;
+            }
+        }
+    }
+    Check(visibleEdgePixels > 100, "edge-hidden restore handle is visible");
+    edgePet.RestoreFromEdge("smoke");
+    Application.DoEvents();
+    Check(!edgePet.IsEdgeHidden && edgePet.Location == normalLocation, "edge-hidden pet restores to original position");
+    edgePet.Close();
 }
 
 var tempRoot = Path.Combine(Path.GetTempPath(), $"DevSpaceStatusPet-Smoke-{Environment.ProcessId}");
